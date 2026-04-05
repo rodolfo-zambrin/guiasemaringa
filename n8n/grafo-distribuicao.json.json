@@ -1,0 +1,286 @@
+{
+  "name": "Grafo - Formulário Consórcio",
+  "nodes": [
+    {
+      "id": "n-01",
+      "name": "Webhook - Formulário",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [0, 300],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "formulario-consorcio",
+        "responseMode": "onReceived",
+        "options": {}
+      }
+    },
+    {
+      "id": "n-02",
+      "name": "Buscar Distribuição",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [240, 300],
+      "parameters": {
+        "method": "GET",
+        "url": "https://SEU_PROJETO.supabase.co/rest/v1/lead_distribuicao?select=*",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey",        "value": "SUPABASE_SERVICE_KEY" },
+            { "name": "Authorization", "value": "Bearer SUPABASE_SERVICE_KEY" }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "n-03",
+      "name": "Calcular Consultor",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [480, 300],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const todos = $input.all().map(item => item.json);\nconst totalLeads = todos.reduce((sum, c) => sum + (c.total_leads || 0), 0);\nconst isAssessores = (totalLeads % 4) === 3;\nconst candidatos = todos.filter(c => isAssessores ? c.time === 'assessores' : c.time === 'consorcio');\ncandidatos.sort((a, b) => {\n  if (!a.dt_ultimo_lead && !b.dt_ultimo_lead) return 0;\n  if (!a.dt_ultimo_lead) return -1;\n  if (!b.dt_ultimo_lead) return 1;\n  return new Date(a.dt_ultimo_lead) - new Date(b.dt_ultimo_lead);\n});\nconst escolhido = candidatos[0];\nreturn [{ json: { consultor_key: escolhido.consultor_key, nome_consultor: escolhido.nome_consultor, enum_id: escolhido.enum_id, time: escolhido.time, total_leads_atual: escolhido.total_leads || 0 } }];"
+      }
+    },
+    {
+      "id": "n-04",
+      "name": "Buscar Contato Kommo",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [720, 300],
+      "parameters": {
+        "method": "GET",
+        "url": "=https://grafocapital.kommo.com/api/v4/contacts?query={{ encodeURIComponent($('Webhook - Formulário').first().json.whatsapp) }}&limit=1&with=leads",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "Bearer KOMMO_BEARER_TOKEN" }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "n-05",
+      "name": "Contato Existe?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [960, 300],
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [{ "id": "c1", "leftValue": "={{ ($json._embedded?.contacts || []).length }}", "rightValue": 0, "operator": { "type": "number", "operation": "gt" } }],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "n-06",
+      "name": "Atualizar Contato",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1200, 140],
+      "parameters": {
+        "method": "PATCH",
+        "url": "https://grafocapital.kommo.com/api/v4/contacts",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "Bearer KOMMO_BEARER_TOKEN" },
+            { "name": "Content-Type",  "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "string",
+        "body": "={{ JSON.stringify([{ \"id\": $('Buscar Contato Kommo').first().json._embedded.contacts[0].id, \"name\": $('Webhook - Formulário').first().json.nome + ' ' + $('Webhook - Formulário').first().json.sobrenome, \"first_name\": $('Webhook - Formulário').first().json.nome, \"last_name\": $('Webhook - Formulário').first().json.sobrenome, \"responsible_user_id\": 14326147, \"custom_fields_values\": [{ \"field_id\": 3609898, \"values\": [{ \"value\": $('Webhook - Formulário').first().json.whatsapp, \"enum_code\": \"WORK\" }] }, { \"field_id\": 3609900, \"values\": [{ \"value\": $('Webhook - Formulário').first().json.email, \"enum_code\": \"WORK\" }] }] }]) }}",
+        "options": {}
+      }
+    },
+    {
+      "id": "n-07",
+      "name": "Criar Contato",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1200, 460],
+      "parameters": {
+        "method": "POST",
+        "url": "https://grafocapital.kommo.com/api/v4/contacts",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "Bearer KOMMO_BEARER_TOKEN" },
+            { "name": "Content-Type",  "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "string",
+        "body": "={{ JSON.stringify([{ \"name\": $('Webhook - Formulário').first().json.nome + ' ' + $('Webhook - Formulário').first().json.sobrenome, \"first_name\": $('Webhook - Formulário').first().json.nome, \"last_name\": $('Webhook - Formulário').first().json.sobrenome, \"responsible_user_id\": 14326147, \"custom_fields_values\": [{ \"field_id\": 3609898, \"values\": [{ \"value\": $('Webhook - Formulário').first().json.whatsapp, \"enum_code\": \"WORK\" }] }, { \"field_id\": 3609900, \"values\": [{ \"value\": $('Webhook - Formulário').first().json.email, \"enum_code\": \"WORK\" }] }] }]) }}",
+        "options": {}
+      }
+    },
+    {
+      "id": "n-08",
+      "name": "Set Contact ID (Existente)",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3,
+      "position": [1440, 140],
+      "parameters": {
+        "mode": "manual",
+        "duplicateItem": false,
+        "assignments": { "assignments": [{ "id": "a1", "name": "contact_id", "value": "={{ $('Buscar Contato Kommo').first().json._embedded.contacts[0].id }}", "type": "number" }] },
+        "options": {}
+      }
+    },
+    {
+      "id": "n-09",
+      "name": "Set Contact ID (Novo)",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3,
+      "position": [1440, 460],
+      "parameters": {
+        "mode": "manual",
+        "duplicateItem": false,
+        "assignments": { "assignments": [{ "id": "a2", "name": "contact_id", "value": "={{ $json._embedded.contacts[0].id }}", "type": "number" }] },
+        "options": {}
+      }
+    },
+    {
+      "id": "n-10",
+      "name": "Merge Contato",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [1680, 300],
+      "parameters": { "mode": "append", "options": {} }
+    },
+    {
+      "id": "n-11",
+      "name": "Buscar Lead Ativo",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1920, 300],
+      "parameters": {
+        "method": "GET",
+        "url": "=https://grafocapital.kommo.com/api/v4/leads?filter[contact_id]={{ $json.contact_id }}&filter[created_at][from]={{ Math.floor((Date.now() - 30 * 24 * 60 * 60 * 1000) / 1000) }}&order[created_at]=desc&limit=1",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "Bearer KOMMO_BEARER_TOKEN" }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "n-12",
+      "name": "Lead Existe?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [2160, 300],
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [{ "id": "c2", "leftValue": "={{ ($json._embedded?.leads || []).length }}", "rightValue": 0, "operator": { "type": "number", "operation": "gt" } }],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "n-13",
+      "name": "Atualizar Lead",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [2400, 140],
+      "parameters": {
+        "method": "PATCH",
+        "url": "https://grafocapital.kommo.com/api/v4/leads",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "Bearer KOMMO_BEARER_TOKEN" },
+            { "name": "Content-Type",  "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "string",
+        "body": "={{ JSON.stringify([{ \"id\": $('Buscar Lead Ativo').first().json._embedded.leads[0].id, \"name\": \"Consórcio\", \"price\": $('Webhook - Formulário').first().json.simulacao?.credito, \"pipeline_id\": 12569939, \"status_id\": 97079363, \"responsible_user_id\": 14482387, \"custom_fields_values\": [{ \"field_id\": 3616136, \"values\": [{ \"value\": $('Webhook - Formulário').first().json.simulacao?.tipo }] }, { \"field_id\": 3616138, \"values\": [{ \"value\": $('Webhook - Formulário').first().json.simulacao?.prazo }] }, { \"field_id\": 3616144, \"values\": [{ \"value\": $('Webhook - Formulário').first().json.simulacao?.credito }] }, { \"field_id\": 3616146, \"values\": [{ \"value\": $('Webhook - Formulário').first().json.simulacao?.taxaAdm }] }, { \"field_id\": 3616198, \"values\": [{ \"value\": $('Webhook - Formulário').first().json.simulacao?.fundoReserva }] }, { \"field_id\": 3616250, \"values\": [{ \"value\": $('Webhook - Formulário').first().json.simulacao?.total }] }, { \"field_id\": 3616252, \"values\": [{ \"value\": $('Webhook - Formulário').first().json.simulacao?.parcelaCheia }] }, { \"field_id\": 3616304, \"values\": [{ \"value\": $('Webhook - Formulário').first().json.simulacao?.meiaParcela }] }, { \"field_id\": 3616314, \"values\": [{ \"value\": $('Webhook - Formulário').first().json.mensagem }] }, { \"field_id\": 3616366, \"values\": [{ \"value\": $('Webhook - Formulário').first().json.consorcio }] }, { \"field_id\": 3616388, \"values\": [{ \"value\": $('Webhook - Formulário').first().json.perfil }] }, { \"field_id\": 3616692, \"values\": [{ \"value\": \"Formulário Consórcio\" }] }, { \"field_id\": 3840436, \"values\": [{ \"enum_id\": $('Calcular Consultor').first().json.enum_id }] }, { \"field_id\": 3855792, \"values\": [{ \"value\": $('Webhook - Formulário').first().json.estado }] }, { \"field_id\": 3855794, \"values\": [{ \"value\": $('Webhook - Formulário').first().json.cidade }] }, { \"field_id\": 3855796, \"values\": [{ \"value\": $('Webhook - Formulário').first().json.finalidade }] }] }]) }}",
+        "options": {}
+      }
+    },
+    {
+      "id": "n-14",
+      "name": "Criar Lead",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [2400, 460],
+      "parameters": {
+        "method": "POST",
+        "url": "https://grafocapital.kommo.com/api/v4/leads",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "Bearer KOMMO_BEARER_TOKEN" },
+            { "name": "Content-Type",  "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "string",
+        "body": "={{ JSON.stringify([{ \"name\": \"Consórcio\", \"price\": $('Webhook - Formulário').first().json.simulacao?.credito, \"pipeline_id\": 12569939, \"status_id\": 97079363, \"responsible_user_id\": 14482387, \"_embedded\": { \"contacts\": [{ \"id\": $('Merge Contato').first().json.contact_id }], \"tags\": [{ \"name\": \"Lead Novo\" }] }, \"custom_fields_values\": [{ \"field_id\": 3616136, \"values\": [{ \"value\": $('Webhook - Formulário').first().json.simulacao?.tipo }] }, { \"field_id\": 3616138, \"values\": [{ \"value\": $('Webhook - Formulário').first().json.simulacao?.prazo }] }, { \"field_id\": 3616144, \"values\": [{ \"value\": $('Webhook - Formulário').first().json.simulacao?.credito }] }, { \"field_id\": 3616146, \"values\": [{ \"value\": $('Webhook - Formulário').first().json.simulacao?.taxaAdm }] }, { \"field_id\": 3616198, \"values\": [{ \"value\": $('Webhook - Formulário').first().json.simulacao?.fundoReserva }] }, { \"field_id\": 3616250, \"values\": [{ \"value\": $('Webhook - Formulário').first().json.simulacao?.total }] }, { \"field_id\": 3616252, \"values\": [{ \"value\": $('Webhook - Formulário').first().json.simulacao?.parcelaCheia }] }, { \"field_id\": 3616304, \"values\": [{ \"value\": $('Webhook - Formulário').first().json.simulacao?.meiaParcela }] }, { \"field_id\": 3616314, \"values\": [{ \"value\": $('Webhook - Formulário').first().json.mensagem }] }, { \"field_id\": 3616366, \"values\": [{ \"value\": $('Webhook - Formulário').first().json.consorcio }] }, { \"field_id\": 3616388, \"values\": [{ \"value\": $('Webhook - Formulário').first().json.perfil }] }, { \"field_id\": 3616692, \"values\": [{ \"value\": \"Formulário Consórcio\" }] }, { \"field_id\": 3840436, \"values\": [{ \"enum_id\": $('Calcular Consultor').first().json.enum_id }] }, { \"field_id\": 3855792, \"values\": [{ \"value\": $('Webhook - Formulário').first().json.estado }] }, { \"field_id\": 3855794, \"values\": [{ \"value\": $('Webhook - Formulário').first().json.cidade }] }, { \"field_id\": 3855796, \"values\": [{ \"value\": $('Webhook - Formulário').first().json.finalidade }] }] }]) }}",
+        "options": {}
+      }
+    },
+    {
+      "id": "n-15",
+      "name": "Merge Lead",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [2640, 300],
+      "parameters": { "mode": "append", "options": {} }
+    },
+    {
+      "id": "n-16",
+      "name": "Atualizar Distribuição",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [2880, 300],
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://SEU_PROJETO.supabase.co/rest/v1/lead_distribuicao?consultor_key=eq.{{ $('Calcular Consultor').first().json.consultor_key }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey",        "value": "SUPABASE_SERVICE_KEY" },
+            { "name": "Authorization", "value": "Bearer SUPABASE_SERVICE_KEY" },
+            { "name": "Prefer",        "value": "return=minimal" },
+            { "name": "Content-Type",  "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "string",
+        "body": "={{ JSON.stringify({ \"dt_ultimo_lead\": new Date().toISOString(), \"total_leads\": $('Calcular Consultor').first().json.total_leads_atual + 1 }) }}",
+        "options": {}
+      }
+    }
+  ],
+  "connections": {
+    "Webhook - Formulário":       { "main": [[{ "node": "Buscar Distribuição",        "type": "main", "index": 0 }]] },
+    "Buscar Distribuição":        { "main": [[{ "node": "Calcular Consultor",          "type": "main", "index": 0 }]] },
+    "Calcular Consultor":         { "main": [[{ "node": "Buscar Contato Kommo",        "type": "main", "index": 0 }]] },
+    "Buscar Contato Kommo":       { "main": [[{ "node": "Contato Existe?",             "type": "main", "index": 0 }]] },
+    "Contato Existe?":            { "main": [[{ "node": "Atualizar Contato", "type": "main", "index": 0 }], [{ "node": "Criar Contato", "type": "main", "index": 0 }]] },
+    "Atualizar Contato":          { "main": [[{ "node": "Set Contact ID (Existente)",  "type": "main", "index": 0 }]] },
+    "Criar Contato":              { "main": [[{ "node": "Set Contact ID (Novo)",       "type": "main", "index": 0 }]] },
+    "Set Contact ID (Existente)": { "main": [[{ "node": "Merge Contato", "type": "main", "index": 0 }]] },
+    "Set Contact ID (Novo)":      { "main": [[{ "node": "Merge Contato", "type": "main", "index": 1 }]] },
+    "Merge Contato":              { "main": [[{ "node": "Buscar Lead Ativo",           "type": "main", "index": 0 }]] },
+    "Buscar Lead Ativo":          { "main": [[{ "node": "Lead Existe?",                "type": "main", "index": 0 }]] },
+    "Lead Existe?":               { "main": [[{ "node": "Atualizar Lead", "type": "main", "index": 0 }], [{ "node": "Criar Lead", "type": "main", "index": 0 }]] },
+    "Atualizar Lead":             { "main": [[{ "node": "Merge Lead", "type": "main", "index": 0 }]] },
+    "Criar Lead":                 { "main": [[{ "node": "Merge Lead", "type": "main", "index": 1 }]] },
+    "Merge Lead":                 { "main": [[{ "node": "Atualizar Distribuição",      "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1" }
+}

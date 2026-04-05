@@ -1,0 +1,57 @@
+{
+  "name": "🚨 Alerta de Erro - WhatsApp",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "a1b2c3d4-0001-0001-0001-000000000001",
+      "name": "Error Trigger",
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [0, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "const exec = $input.first().json;\nconst workflowName = exec.workflow?.name || 'Desconhecido';\nconst nodeName = exec.execution?.lastNodeExecuted || 'N/A';\nconst errorMsg = exec.execution?.error?.message || 'Erro desconhecido';\nconst execId = exec.execution?.id || '';\nconst now = new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });\n\nconst message = [\n  '🚨 *ERRO EM INTEGRAÇÃO N8N*',\n  '',\n  `📋 *Workflow:* ${workflowName}`,\n  `🔴 *Nó com erro:* ${nodeName}`,\n  `💬 *Mensagem:* ${errorMsg}`,\n  `🕐 *Horário:* ${now}`,\n  `🔗 *Execução ID:* ${execId}`\n].join('\\n');\n\nreturn [{ json: { message } }];"
+      },
+      "id": "a1b2c3d4-0002-0002-0002-000000000002",
+      "name": "Formatar Mensagem",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [220, 0]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.z-api.io/instances/3F11F10AC9A8F1E6260D9270C2FA2FFD/token/37A373851A9E6E1E2F54781A/send-text",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Client-Token", "value": "Fb486079668524609b5af3b969c4785c5S" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({ phone: '120363425794446218-group', message: $json.message }) }}",
+        "options": {}
+      },
+      "id": "a1b2c3d4-0003-0003-0003-000000000003",
+      "name": "Enviar WhatsApp",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [440, 0]
+    }
+  ],
+  "connections": {
+    "Error Trigger": {
+      "main": [[{ "node": "Formatar Mensagem", "type": "main", "index": 0 }]]
+    },
+    "Formatar Mensagem": {
+      "main": [[{ "node": "Enviar WhatsApp", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

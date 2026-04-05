@@ -1,0 +1,10 @@
+{
+  "_meta": {
+    "n8n_id": "Tw119Hyu4b1nW8oZ",
+    "description": "Google Ads Backfill 2024-2026 via Windsor.ai",
+    "created": "2026-04-04",
+    "accounts": 11,
+    "chunks_per_account": "~10 (90 dias cada)",
+    "total_requests": "~110"
+  }
+}

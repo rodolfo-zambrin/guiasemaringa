@@ -1,0 +1,240 @@
+{
+  "name": "Meta Ads — Backfill Histórico",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "node-trigger",
+      "name": "Executar Manualmente",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "mode": "manual",
+        "assignments": {
+          "assignments": [
+            { "id": "c1", "name": "SUPABASE_URL", "value": "https://lsccpbfuatpwycrtksrb.supabase.co", "type": "string" },
+            { "id": "c2", "name": "SUPABASE_KEY", "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxzY2NwYmZ1YXRwd3ljcnRrc3JiIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NDg4MzY3MywiZXhwIjoyMDkwNDU5NjczfQ.NwYOCZ9_udnORBFga0ADTSZRxYqbTvaDlnyEfr5xod8", "type": "string" },
+            { "id": "c3", "name": "AGENCY_ID",    "value": "00000000-0000-0000-0000-000000000001", "type": "string" },
+            { "id": "c4", "name": "DATE_FROM",    "value": "2025-01-01", "type": "string" },
+            { "id": "c5", "name": "DATE_TO",      "value": "={{ DateTime.now().minus({days: 1}).toFormat('yyyy-MM-dd') }}", "type": "string" }
+          ]
+        }
+      },
+      "id": "node-config",
+      "name": "Config Backfill",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [460, 300],
+      "notes": "Altere DATE_FROM para o período desejado. Ex: 2025-01-01 para puxar desde o início do ano."
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $('Config Backfill').item.json.SUPABASE_URL }}/rest/v1/ad_accounts",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey",        "value": "={{ $('Config Backfill').item.json.SUPABASE_KEY }}" },
+            { "name": "Authorization", "value": "=Bearer {{ $('Config Backfill').item.json.SUPABASE_KEY }}" }
+          ]
+        },
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "platform",  "value": "eq.meta" },
+            { "name": "is_active", "value": "eq.true" },
+            { "name": "select",    "value": "account_id,account_name,client_id" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "node-get-accounts",
+      "name": "Buscar Contas Meta",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $('Config Backfill').item.json.SUPABASE_URL }}/rest/v1/agency_api_tokens",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey",        "value": "={{ $('Config Backfill').item.json.SUPABASE_KEY }}" },
+            { "name": "Authorization", "value": "=Bearer {{ $('Config Backfill').item.json.SUPABASE_KEY }}" }
+          ]
+        },
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "agency_id", "value": "=eq.{{ $('Config Backfill').item.json.AGENCY_ID }}" },
+            { "name": "platform",  "value": "eq.meta" },
+            { "name": "is_active", "value": "eq.true" },
+            { "name": "select",    "value": "access_token" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "node-get-token",
+      "name": "Buscar Token Meta",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [900, 300]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $('Config Backfill').item.json.SUPABASE_URL }}/rest/v1/client_api_tokens",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey",        "value": "={{ $('Config Backfill').item.json.SUPABASE_KEY }}" },
+            { "name": "Authorization", "value": "=Bearer {{ $('Config Backfill').item.json.SUPABASE_KEY }}" }
+          ]
+        },
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "platform",  "value": "eq.meta" },
+            { "name": "is_active", "value": "eq.true" },
+            { "name": "select",    "value": "client_id,access_token" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "node-get-client-tokens",
+      "name": "Buscar Tokens Clientes",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "alwaysOutputData": true,
+      "position": [1120, 300]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Backfill: divide o período em chunks de 30 dias por conta\n// N8N separa array JSON em items individuais — .all() retorna N items, cada .json é 1 registro\nconst accounts    = $('Buscar Contas Meta').all().map(item => item.json);\nconst agencyItems = $('Buscar Token Meta').all();\nconst clientItems = $('Buscar Tokens Clientes').all();\n\nconst agencyToken = agencyItems.length > 0 ? agencyItems[0].json?.access_token : null;\n\nconst clientTokenMap = {};\nfor (const item of clientItems) {\n  if (item.json?.client_id) clientTokenMap[item.json.client_id] = item.json.access_token;\n}\n\nconst dateFrom = $('Config Backfill').item.json.DATE_FROM;\nconst dateTo   = $('Config Backfill').item.json.DATE_TO;\n\nfunction chunkDates(from, to, chunkDays = 30) {\n  const chunks = [];\n  let current = new Date(from);\n  const end = new Date(to);\n  while (current <= end) {\n    const chunkEnd = new Date(current);\n    chunkEnd.setDate(chunkEnd.getDate() + chunkDays - 1);\n    if (chunkEnd > end) chunkEnd.setTime(end.getTime());\n    chunks.push({\n      from: current.toISOString().split('T')[0],\n      to:   chunkEnd.toISOString().split('T')[0]\n    });\n    current = new Date(chunkEnd);\n    current.setDate(current.getDate() + 1);\n  }\n  return chunks;\n}\n\nconst dateChunks = chunkDates(dateFrom, dateTo, 30);\nconst items = [];\n\nfor (const acc of accounts) {\n  const token = clientTokenMap[acc.client_id] ?? agencyToken;\n  for (const chunk of dateChunks) {\n    items.push({\n      json: {\n        account_id:   acc.account_id,\n        account_name: acc.account_name,\n        client_id:    acc.client_id,\n        access_token: token,\n        date_from:    chunk.from,\n        date_to:      chunk.to,\n        supabase_url: $('Config Backfill').item.json.SUPABASE_URL,\n        supabase_key: $('Config Backfill').item.json.SUPABASE_KEY\n      }\n    });\n  }\n}\n\nconsole.log(`Backfill: ${items.length} requests (${accounts.length} contas × ${dateChunks.length} chunks)`);\nreturn items;\n"
+      },
+      "id": "node-build-list",
+      "name": "Gerar Requests de Backfill",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1340, 300]
+    },
+    {
+      "parameters": {
+        "batchSize": 1,
+        "options": {}
+      },
+      "id": "node-loop",
+      "name": "Loop Backfill",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [1560, 300]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://graph.facebook.com/v21.0/act_{{ $json.account_id }}/insights",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "access_token",   "value": "={{ $json.access_token }}" },
+            { "name": "fields",         "value": "account_id,date_start,spend,impressions,reach,clicks,inline_link_clicks,actions,action_values,ctr,cpm,cpc,frequency" },
+            { "name": "time_range",     "value": "={{ JSON.stringify({ since: $json.date_from, until: $json.date_to }) }}" },
+            { "name": "time_increment", "value": "1" },
+            { "name": "limit",          "value": "500" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "node-meta-api",
+      "name": "Meta API Backfill",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1780, 220]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const getAction = (arr, type) => {\n  if (!Array.isArray(arr)) return 0;\n  const found = arr.find(a => a.action_type === type);\n  return found ? parseFloat(found.value) || 0 : 0;\n};\n\nconst items = [];\nfor (const item of $input.all()) {\n  const rows = item.json?.data ?? [];\n  const loopItem = $('Loop Backfill').item.json;\n\n  for (const row of rows) {\n    const accountId = String(row.account_id ?? loopItem.account_id).replace(/^act_/, '');\n    if (!row.date_start) continue;\n\n    items.push({\n      json: {\n        account_id:       accountId,\n        date:             row.date_start,\n        spend:            parseFloat(row.spend ?? 0),\n        impressions:      parseInt(row.impressions ?? 0),\n        reach:            parseInt(row.reach ?? 0),\n        clicks:           parseInt(row.clicks ?? 0),\n        link_clicks:      parseInt(row.inline_link_clicks ?? 0),\n        leads:             getAction(row.actions, 'lead'),\n        conversions:       getAction(row.actions, 'offsite_conversion.fb_pixel_purchase'),\n        conversion_value:  getAction(row.action_values, 'offsite_conversion.fb_pixel_purchase'),\n        add_to_cart:       getAction(row.actions, 'add_to_cart'),\n        initiate_checkout: getAction(row.actions, 'initiate_checkout'),\n        frequency:        parseFloat(row.frequency ?? 0),\n        cpm:              parseFloat(row.cpm ?? 0),\n        cpc:              parseFloat(row.cpc ?? 0),\n        ctr:              parseFloat(row.ctr ?? 0),\n        synced_at:        new Date().toISOString(),\n        _supabase_url:    loopItem.supabase_url,\n        _supabase_key:    loopItem.supabase_key\n      }\n    });\n  }\n}\nreturn items.length > 0 ? items : [{ json: { _skip: true } }];\n"
+      },
+      "id": "node-parse",
+      "name": "Transformar Backfill",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2000, 220]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true },
+          "conditions": [
+            {
+              "leftValue": "={{ $json._skip }}",
+              "rightValue": true,
+              "operator": { "type": "boolean", "operation": "notEquals" }
+            }
+          ]
+        }
+      },
+      "id": "node-filter",
+      "name": "Tem dados Backfill?",
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2,
+      "position": [2220, 220]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json._supabase_url }}/rest/v1/meta_account_daily",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey",        "value": "={{ $json._supabase_key }}" },
+            { "name": "Authorization", "value": "=Bearer {{ $json._supabase_key }}" },
+            { "name": "Content-Type",  "value": "application/json" },
+            { "name": "Prefer",        "value": "resolution=merge-duplicates" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ account_id: $json.account_id, date: $json.date, spend: $json.spend, impressions: $json.impressions, reach: $json.reach, clicks: $json.clicks, link_clicks: $json.link_clicks, leads: $json.leads, conversions: $json.conversions, conversion_value: $json.conversion_value, add_to_cart: $json.add_to_cart, initiate_checkout: $json.initiate_checkout, frequency: $json.frequency, cpm: $json.cpm, cpc: $json.cpc, ctr: $json.ctr, synced_at: $json.synced_at }) }}",
+        "options": {}
+      },
+      "id": "node-upsert",
+      "name": "Upsert Backfill Supabase",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [2440, 220]
+    }
+  ],
+  "connections": {
+    "Executar Manualmente":       { "main": [[{ "node": "Config Backfill",              "type": "main", "index": 0 }]] },
+    "Config Backfill":            { "main": [[{ "node": "Buscar Contas Meta",            "type": "main", "index": 0 }]] },
+    "Buscar Contas Meta":         { "main": [[{ "node": "Buscar Token Meta",             "type": "main", "index": 0 }]] },
+    "Buscar Token Meta":          { "main": [[{ "node": "Buscar Tokens Clientes",        "type": "main", "index": 0 }]] },
+    "Buscar Tokens Clientes":     { "main": [[{ "node": "Gerar Requests de Backfill",     "type": "main", "index": 0 }]] },
+    "Gerar Requests de Backfill": { "main": [[{ "node": "Loop Backfill",                 "type": "main", "index": 0 }]] },
+    "Loop Backfill": {
+      "main": [
+        [{ "node": "Meta API Backfill", "type": "main", "index": 0 }],
+        []
+      ]
+    },
+    "Meta API Backfill":         { "main": [[{ "node": "Transformar Backfill",      "type": "main", "index": 0 }]] },
+    "Transformar Backfill":      { "main": [[{ "node": "Tem dados Backfill?",       "type": "main", "index": 0 }]] },
+    "Tem dados Backfill?": {
+      "main": [
+        [{ "node": "Upsert Backfill Supabase", "type": "main", "index": 0 }],
+        [{ "node": "Loop Backfill",            "type": "main", "index": 0 }]
+      ]
+    },
+    "Upsert Backfill Supabase":  { "main": [[{ "node": "Loop Backfill",             "type": "main", "index": 0 }]] }
+  },
+  "active": false,
+  "settings": { "executionOrder": "v1" },
+  "tags": [{ "name": "guiase" }]
+}

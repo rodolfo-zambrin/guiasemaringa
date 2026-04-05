@@ -1,0 +1,205 @@
+{
+  "name": "Meta Ads — Sync Horário",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [{ "field": "cronExpression", "expression": "0 * * * *" }]
+        }
+      },
+      "id": "node-schedule",
+      "name": "Agendamento (todo hora)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "mode": "manual",
+        "assignments": {
+          "assignments": [
+            { "id": "c1", "name": "SUPABASE_URL",  "value": "https://lsccpbfuatpwycrtksrb.supabase.co", "type": "string" },
+            { "id": "c2", "name": "SUPABASE_KEY",  "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxzY2NwYmZ1YXRwd3ljcnRrc3JiIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NDg4MzY3MywiZXhwIjoyMDkwNDU5NjczfQ.NwYOCZ9_udnORBFga0ADTSZRxYqbTvaDlnyEfr5xod8", "type": "string" },
+            { "id": "c3", "name": "TODAY",         "value": "={{ DateTime.now().toFormat('yyyy-MM-dd') }}", "type": "string" }
+          ]
+        }
+      },
+      "id": "node-config",
+      "name": "Config",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $('Config').item.json.SUPABASE_URL }}/rest/v1/ad_accounts",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey",        "value": "={{ $('Config').item.json.SUPABASE_KEY }}" },
+            { "name": "Authorization", "value": "=Bearer {{ $('Config').item.json.SUPABASE_KEY }}" }
+          ]
+        },
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "platform",  "value": "eq.meta" },
+            { "name": "is_active", "value": "eq.true" },
+            { "name": "select",    "value": "client_id,account_id,account_name" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "node-get-accounts",
+      "name": "Buscar Contas Meta",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $('Config').item.json.SUPABASE_URL }}/rest/v1/client_api_tokens",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey",        "value": "={{ $('Config').item.json.SUPABASE_KEY }}" },
+            { "name": "Authorization", "value": "=Bearer {{ $('Config').item.json.SUPABASE_KEY }}" }
+          ]
+        },
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "platform",  "value": "eq.meta" },
+            { "name": "is_active", "value": "eq.true" },
+            { "name": "select",    "value": "client_id,access_token" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "node-get-tokens",
+      "name": "Buscar Tokens Meta",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "alwaysOutputData": true,
+      "position": [900, 300]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Combina contas + tokens por client_id\nconst accounts = $('Buscar Contas Meta').all().map(i => i.json);\nconst tokens = $('Buscar Tokens Meta').all().map(i => i.json);\nconst config = $('Config').first().json;\n\n// Token da agência (fallback)\nconst agencyToken = $('Config').first().json.AGENCY_TOKEN ?? null;\n\nconst result = [];\nfor (const acc of accounts) {\n  // Buscar token do cliente ou usar agência\n  const clientToken = tokens.find(t => t.client_id === acc.client_id);\n  const access_token = clientToken?.access_token ?? agencyToken;\n  if (!access_token) continue;\n  result.push({\n    ...acc,\n    access_token,\n    supabase_url: config.SUPABASE_URL,\n    supabase_key: config.SUPABASE_KEY,\n    today: config.TODAY\n  });\n}\nreturn result.map(r => ({ json: r }));"
+      },
+      "id": "node-merge",
+      "name": "Montar Lista de Contas",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1120, 300]
+    },
+    {
+      "parameters": {
+        "batchSize": 1,
+        "options": {}
+      },
+      "id": "node-loop",
+      "name": "Loop por Conta",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [1340, 300]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://graph.facebook.com/v21.0/act_{{ $json.account_id }}/insights",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "access_token", "value": "={{ $json.access_token }}" },
+            {
+              "name": "fields",
+              "value": "account_id,account_name,date_start,hourly_stats_aggregated_by_advertiser_time_zone,spend,impressions,reach,clicks,actions,action_values,cpm,ctr,frequency"
+            },
+            {
+              "name": "time_range",
+              "value": "={{ JSON.stringify({ since: $json.today, until: $json.today }) }}"
+            },
+            { "name": "time_increment", "value": "1" },
+            { "name": "breakdowns",     "value": "hourly_stats_aggregated_by_advertiser_time_zone" },
+            { "name": "limit",          "value": "500" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "node-api",
+      "name": "Meta Insights API (horário)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1560, 300]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Transforma dados horários Meta\nconst items = $input.all();\nconst loopItem = $('Loop por Conta').item.json;\n\nconst result = [];\n\nfor (const item of items) {\n  const data = item.json?.data ?? [];\n  for (const row of data) {\n    const hourlyStr = row.hourly_stats_aggregated_by_advertiser_time_zone ?? '';\n    // \"14:00:00 - 14:59:59\" → 14\n    const hour = hourlyStr ? parseInt(hourlyStr.split(':')[0], 10) : null;\n    if (hour === null || isNaN(hour)) continue;\n\n    const actions = row.actions ?? [];\n    const actionValues = row.action_values ?? [];\n\n    const getAction = (type) => {\n      const found = actions.find(a => a.action_type === type);\n      return found ? parseFloat(found.value) : 0;\n    };\n    const getActionValue = (type) => {\n      const found = actionValues.find(a => a.action_type === type);\n      return found ? parseFloat(found.value) : 0;\n    };\n\n    result.push({\n      json: {\n        account_id: loopItem.account_id,\n        account_name: row.account_name ?? loopItem.account_name ?? '',\n        date: row.date_start,\n        hour,\n        spend: parseFloat(row.spend ?? '0'),\n        impressions: parseInt(row.impressions ?? '0', 10),\n        reach: parseInt(row.reach ?? '0', 10),\n        clicks: parseInt(row.clicks ?? '0', 10),\n        leads: getAction('lead'),\n        purchases: getAction('purchase'),\n        purchase_value: getActionValue('purchase'),\n        messaging_starts: getAction('onsite_conversion.messaging_conversation_started_7d'),\n        video_views: getAction('video_view'),\n        add_to_cart: getAction('add_to_cart'),\n        initiate_checkout: getAction('initiate_checkout'),\n        cpm: parseFloat(row.cpm ?? '0'),\n        ctr: parseFloat(row.ctr ?? '0'),\n        synced_at: new Date().toISOString(),\n        _supabase_url: loopItem.supabase_url,\n        _supabase_key: loopItem.supabase_key\n      }\n    });\n  }\n}\n\nreturn result;"
+      },
+      "id": "node-transform",
+      "name": "Transformar Dados Horários",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1780, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [{ "id": "has-data", "leftValue": "={{ $input.all().length }}", "rightValue": 0, "operator": { "type": "number", "operation": "gt" } }],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "node-filter",
+      "name": "Tem dados?",
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2,
+      "position": [2000, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json._supabase_url }}/rest/v1/meta_account_hourly",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey",        "value": "={{ $json._supabase_key }}" },
+            { "name": "Authorization", "value": "=Bearer {{ $json._supabase_key }}" },
+            { "name": "Content-Type",  "value": "application/json" },
+            { "name": "Prefer",        "value": "resolution=merge-duplicates" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ account_id: $json.account_id, account_name: $json.account_name, date: $json.date, hour: $json.hour, spend: $json.spend, impressions: $json.impressions, reach: $json.reach, clicks: $json.clicks, leads: $json.leads, purchases: $json.purchases, purchase_value: $json.purchase_value, messaging_starts: $json.messaging_starts, video_views: $json.video_views, add_to_cart: $json.add_to_cart, initiate_checkout: $json.initiate_checkout, synced_at: $json.synced_at }) }}",
+        "options": {}
+      },
+      "id": "node-save",
+      "name": "Salvar no Supabase",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [2220, 300]
+    }
+  ],
+  "connections": {
+    "Agendamento (todo hora)": { "main": [[{ "node": "Config", "type": "main", "index": 0 }]] },
+    "Config": { "main": [[{ "node": "Buscar Contas Meta", "type": "main", "index": 0 }]] },
+    "Buscar Contas Meta": { "main": [[{ "node": "Buscar Tokens Meta", "type": "main", "index": 0 }]] },
+    "Buscar Tokens Meta": { "main": [[{ "node": "Montar Lista de Contas", "type": "main", "index": 0 }]] },
+    "Montar Lista de Contas": { "main": [[{ "node": "Loop por Conta", "type": "main", "index": 0 }]] },
+    "Loop por Conta": { "main": [[{ "node": "Meta Insights API (horário)", "type": "main", "index": 0 }]] },
+    "Meta Insights API (horário)": { "main": [[{ "node": "Transformar Dados Horários", "type": "main", "index": 0 }]] },
+    "Transformar Dados Horários": { "main": [[{ "node": "Tem dados?", "type": "main", "index": 0 }]] },
+    "Tem dados?": { "main": [[{ "node": "Salvar no Supabase", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1" },
+  "staticData": null,
+  "meta": { "templateCredsSetupCompleted": true },
+  "pinData": {}
+}

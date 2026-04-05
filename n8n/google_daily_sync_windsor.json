@@ -1,0 +1,9 @@
+{
+  "_meta": {
+    "n8n_id": "Lgz3XJUSOCfnPzss",
+    "description": "Google Ads Sync Diario via Windsor.ai — roda 07:00 todo dia",
+    "created": "2026-04-04",
+    "active": true,
+    "replaces": "7EcnKnHTbOupezsm (usava Developer Token incorretamente)"
+  }
+}
