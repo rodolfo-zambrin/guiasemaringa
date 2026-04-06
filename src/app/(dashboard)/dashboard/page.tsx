@@ -235,119 +235,151 @@ export default function DashboardPage() {
   ]
 
   return (
-    <div className="flex flex-col flex-1">
+    <div className="flex flex-col flex-1 bg-[#0d1520]">
       <Header title="Visão Geral do Portfólio" />
 
       <div className="flex-1 p-6 space-y-6">
         {/* KPI Cards */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
           <MetricCard
             label="Total Investido"
             value={totals.totalSpend}
             format="brl"
-            icon={<DollarSign size={16} />}
+            icon={<DollarSign size={15} />}
             isLoading={isLoading}
+            accentColor="#F59E0B"
           />
           <MetricCard
             label="Impressões"
             value={totals.impressions}
             format="number"
-            icon={<Eye size={16} />}
+            icon={<Eye size={15} />}
             isLoading={isLoading}
+            accentColor="#3B82F6"
           />
           <MetricCard
             label="Cliques"
             value={totals.clicks}
             format="number"
-            icon={<MousePointer size={16} />}
+            icon={<MousePointer size={15} />}
             isLoading={isLoading}
+            accentColor="#06B6D4"
           />
           <MetricCard
             label="Leads"
             value={totals.leads}
             format="number"
-            icon={<UserCheck size={16} />}
+            icon={<UserCheck size={15} />}
             isLoading={isLoading}
+            accentColor="#22C55E"
           />
           <MetricCard
             label="Conversões"
             value={totals.conversions}
             format="number"
-            icon={<ShoppingCart size={16} />}
+            icon={<ShoppingCart size={15} />}
             isLoading={isLoading}
+            accentColor="#A855F7"
           />
           <MetricCard
             label="ROAS Médio"
             value={totals.roas}
             format="roas"
-            icon={<TrendingUp size={16} />}
+            icon={<TrendingUp size={15} />}
             isLoading={isLoading}
+            accentColor="#10B981"
           />
         </div>
 
         {/* Charts row */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           {/* Top clients */}
-          <div className="lg:col-span-2 bg-[#1E293B] border border-[#334155] rounded-xl p-5">
-            <h3 className="text-sm font-semibold text-[#F1F5F9] mb-4">
-              Top 10 Clientes por Investimento
-            </h3>
-            <BarChart
-              data={topClientsChart}
-              xKey="name"
-              valueKey="spend"
-              color="#3B82F6"
-              format="brl"
-              horizontal
-              height={300}
-            />
+          <div className="lg:col-span-2 bg-[#1E293B] border border-[#1e2d3d] rounded-xl overflow-hidden">
+            <div className="px-5 py-4 border-b border-[#1e2d3d]">
+              <h3 className="text-sm font-semibold text-[#E2E8F0]">Top 10 Clientes</h3>
+              <p className="text-[11px] text-[#475569] mt-0.5">Ranking por investimento total no período</p>
+            </div>
+            <div className="p-5">
+              <BarChart
+                data={topClientsChart}
+                xKey="name"
+                valueKey="spend"
+                color="#3B82F6"
+                format="brl"
+                horizontal
+                height={300}
+              />
+            </div>
           </div>
 
           {/* Platform donut */}
-          <div className="bg-[#1E293B] border border-[#334155] rounded-xl p-5">
-            <h3 className="text-sm font-semibold text-[#F1F5F9] mb-1">
-              Distribuição por Plataforma
-            </h3>
-            <p className="text-xs text-[#64748B] mb-4">Participação no investimento total</p>
-            <DonutChart data={platformDonut} format="brl" height={240} />
-            <div className="mt-3 space-y-1.5">
-              {[
-                { label: 'Meta Ads', value: totals.metaSpend, color: '#1877F2' },
-                { label: 'Google Ads', value: totals.googleSpend, color: '#34A853' },
-              ].map((item) => (
-                <div key={item.label} className="flex items-center justify-between text-xs">
-                  <div className="flex items-center gap-1.5">
-                    <span className="w-2 h-2 rounded-full" style={{ backgroundColor: item.color }} />
-                    <span className="text-[#94A3B8]">{item.label}</span>
+          <div className="bg-[#1E293B] border border-[#1e2d3d] rounded-xl overflow-hidden">
+            <div className="px-5 py-4 border-b border-[#1e2d3d]">
+              <h3 className="text-sm font-semibold text-[#E2E8F0]">Distribuição por Plataforma</h3>
+              <p className="text-[11px] text-[#475569] mt-0.5">Participação no investimento total</p>
+            </div>
+            <div className="p-5">
+              <DonutChart data={platformDonut} format="brl" height={200} />
+              <div className="mt-4 space-y-2">
+                {[
+                  { label: 'Meta Ads', value: totals.metaSpend, color: '#1877F2' },
+                  { label: 'Google Ads', value: totals.googleSpend, color: '#34A853' },
+                ].map((item) => (
+                  <div key={item.label} className="flex items-center justify-between text-xs">
+                    <div className="flex items-center gap-2">
+                      <span className="w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: item.color }} />
+                      <span className="text-[#64748B]">{item.label}</span>
+                    </div>
+                    <span className="text-[#E2E8F0] font-semibold tabular-nums">{fmtBRL(item.value)}</span>
                   </div>
-                  <span className="text-[#F1F5F9] font-medium">{fmtBRL(item.value)}</span>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
           </div>
         </div>
 
         {/* Daily trend */}
-        <div className="bg-[#1E293B] border border-[#334155] rounded-xl p-5">
-          <h3 className="text-sm font-semibold text-[#F1F5F9] mb-1">
-            Tendência de Investimento Diário
-          </h3>
-          <p className="text-xs text-[#64748B] mb-4">Meta vs Google — {dateRange.from} a {dateRange.to}</p>
-          <AreaChart
-            data={dailyTrendChart}
-            xKey="date"
-            dataKeys={[
-              { key: 'meta', color: '#1877F2', label: 'Meta Ads', format: 'brl' },
-              { key: 'google', color: '#34A853', label: 'Google Ads', format: 'brl' },
-            ]}
-            height={260}
-          />
+        <div className="bg-[#1E293B] border border-[#1e2d3d] rounded-xl overflow-hidden">
+          <div className="px-5 py-4 border-b border-[#1e2d3d] flex items-center justify-between">
+            <div>
+              <h3 className="text-sm font-semibold text-[#E2E8F0]">Investimento Diário</h3>
+              <p className="text-[11px] text-[#475569] mt-0.5">
+                Meta vs Google — {dateRange.from} a {dateRange.to}
+              </p>
+            </div>
+            <div className="hidden sm:flex items-center gap-3 text-xs text-[#475569]">
+              <span className="flex items-center gap-1.5">
+                <span className="w-2.5 h-0.5 rounded-full bg-[#1877F2]" />
+                Meta Ads
+              </span>
+              <span className="flex items-center gap-1.5">
+                <span className="w-2.5 h-0.5 rounded-full bg-[#34A853]" />
+                Google Ads
+              </span>
+            </div>
+          </div>
+          <div className="p-5">
+            <AreaChart
+              data={dailyTrendChart}
+              xKey="date"
+              dataKeys={[
+                { key: 'meta', color: '#1877F2', label: 'Meta Ads', format: 'brl' },
+                { key: 'google', color: '#34A853', label: 'Google Ads', format: 'brl' },
+              ]}
+              height={260}
+            />
+          </div>
         </div>
 
         {/* Clients table */}
-        <div className="bg-[#1E293B] border border-[#334155] rounded-xl p-5">
-          <h3 className="text-sm font-semibold text-[#F1F5F9] mb-4">Resumo por Cliente</h3>
-          <DataTable data={clientRows} columns={columns} isLoading={isLoading} />
+        <div className="bg-[#1E293B] border border-[#1e2d3d] rounded-xl overflow-hidden">
+          <div className="px-5 py-4 border-b border-[#1e2d3d]">
+            <h3 className="text-sm font-semibold text-[#E2E8F0]">Resumo por Cliente</h3>
+            <p className="text-[11px] text-[#475569] mt-0.5">Performance consolidada por conta no período selecionado</p>
+          </div>
+          <div className="p-5">
+            <DataTable data={clientRows} columns={columns} isLoading={isLoading} />
+          </div>
         </div>
       </div>
     </div>

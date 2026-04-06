@@ -3,12 +3,12 @@
 @tailwind utilities;
 
 :root {
-  --bg: #0F172A;
+  --bg: #0d1520;
   --surface: #1E293B;
-  --elevated: #263548;
-  --border: #334155;
-  --text-primary: #F1F5F9;
-  --text-muted: #94A3B8;
+  --elevated: #1a2744;
+  --border: #1e2d3d;
+  --text-primary: #E2E8F0;
+  --text-muted: #64748B;
   --meta: #1877F2;
   --google: #34A853;
   --success: #10B981;
@@ -24,8 +24,8 @@
 }
 
 body {
-  background-color: #0F172A;
-  color: #F1F5F9;
+  background-color: #0d1520;
+  color: #E2E8F0;
   font-family: 'Inter', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -33,18 +33,18 @@ body {
 
 /* Scrollbar */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
 }
 ::-webkit-scrollbar-track {
-  background: #0F172A;
+  background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #334155;
-  border-radius: 3px;
+  background: #1e2d3d;
+  border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #475569;
+  background: #334155;
 }
 
 /* Table sticky header */
@@ -57,7 +57,7 @@ body {
 
 /* Shimmer animation */
 .shimmer {
-  background: linear-gradient(90deg, #1E293B 25%, #263548 50%, #1E293B 75%);
+  background: linear-gradient(90deg, #1E293B 25%, #1a2744 50%, #1E293B 75%);
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite linear;
 }
@@ -74,4 +74,25 @@ body {
 }
 .animate-pulse-live {
   animation: pulse-live 1.5s ease-in-out infinite;
+}
+
+/* Fade in */
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-in {
+  animation: fade-in 0.25s ease-out forwards;
+}
+
+/* Focus ring */
+:focus-visible {
+  outline: 2px solid #3B82F6;
+  outline-offset: 2px;
+}
+
+/* Selection */
+::selection {
+  background-color: #3B82F6;
+  color: #fff;
 }
