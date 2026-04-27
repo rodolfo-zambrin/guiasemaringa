@@ -90,8 +90,8 @@ export function Sidebar() {
       icon: <Activity size={17} />,
       label: 'Tempo Real',
       badge: (
-        <span className="flex items-center gap-1 bg-[#EF4444]/12 text-[#EF4444] text-[10px] font-bold px-1.5 py-0.5 rounded-full">
-          <span className="w-1.5 h-1.5 bg-[#EF4444] rounded-full animate-pulse-live" />
+        <span className="flex items-center gap-1 bg-danger-bg text-danger text-[10px] font-bold px-1.5 py-0.5 rounded-full shadow-[0_0_10px_rgba(239,68,68,0.2)]">
+          <span className="w-1.5 h-1.5 bg-danger rounded-full animate-pulse-live" />
           AO VIVO
         </span>
       ),
@@ -107,7 +107,7 @@ export function Sidebar() {
       label: 'Alertas',
       badge:
         totalAlerts > 0 ? (
-          <span className="bg-[#EF4444] text-white text-[10px] font-bold min-w-[18px] h-[18px] rounded-full flex items-center justify-center px-1">
+          <span className="bg-danger text-white text-[10px] font-bold min-w-[18px] h-[18px] rounded-full flex items-center justify-center px-1 shadow-[0_0_10px_rgba(239,68,68,0.5)]">
             {totalAlerts > 99 ? '99+' : totalAlerts}
           </span>
         ) : undefined,
@@ -139,9 +139,9 @@ export function Sidebar() {
     const isExpanded = expandedItems.includes(item.href)
     const childActive = item.children?.some((c) => pathname.startsWith(c.href))
     const accentColor = isAdmin ? '#A855F7' : '#3B82F6'
-    const activeBg = isAdmin ? 'bg-purple-500/12 text-purple-400' : 'bg-[#3B82F6]/12 text-[#3B82F6]'
-    const activeBorder = isAdmin ? 'border-purple-400' : 'border-[#3B82F6]'
-    const activeChildText = isAdmin ? 'text-purple-400' : 'text-[#3B82F6]'
+    const activeBg = isAdmin ? 'bg-purple-500/12 text-purple-400' : 'bg-active-bg text-info shadow-[inset_0_0_20px_rgba(56,189,248,0.05)]'
+    const activeBorder = isAdmin ? 'border-purple-400 shadow-[0_0_10px_rgba(168,85,247,0.4)]' : 'border-info shadow-[0_0_10px_rgba(56,189,248,0.4)]'
+    const activeChildText = isAdmin ? 'text-purple-400' : 'text-info'
 
     return (
       <div key={item.href}>
@@ -149,13 +149,13 @@ export function Sidebar() {
           <button
             onClick={() => toggleExpanded(item.href)}
             className={cn(
-              'w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-150 cursor-pointer',
+              'w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 cursor-pointer',
               active || childActive
-                ? `${activeBg} border-l-2 ${activeBorder}`
-                : 'text-[#64748B] hover:bg-[#1E293B]/80 hover:text-[#94A3B8]'
+                ? `${activeBg} border-l-[3px] ${activeBorder}`
+                : 'text-text-muted hover:bg-white/5 hover:text-text-primary'
             )}
           >
-            <span className="flex-shrink-0">{item.icon}</span>
+            <span className={cn('flex-shrink-0 transition-transform duration-200', (active || childActive) && 'scale-110 drop-shadow-[0_0_8px_rgba(56,189,248,0.6)]')}>{item.icon}</span>
             <span className="flex-1 text-left truncate">{item.label}</span>
             {item.badge && <span>{item.badge}</span>}
             <span className="text-[#475569]">
@@ -167,14 +167,14 @@ export function Sidebar() {
             href={item.href}
             title={sidebarCollapsed ? item.label : undefined}
             className={cn(
-              'flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-150 cursor-pointer',
+              'flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 cursor-pointer',
               sidebarCollapsed ? 'justify-center' : '',
               active
-                ? `${activeBg} border-l-2 ${activeBorder}`
-                : 'text-[#64748B] hover:bg-[#1E293B]/80 hover:text-[#94A3B8]'
+                ? `${activeBg} border-l-[3px] ${activeBorder}`
+                : 'text-text-muted hover:bg-white/5 hover:text-text-primary'
             )}
           >
-            <span className="flex-shrink-0">{item.icon}</span>
+            <span className={cn('flex-shrink-0 transition-transform duration-200', active && 'scale-110 drop-shadow-[0_0_8px_rgba(56,189,248,0.6)]')}>{item.icon}</span>
             {!sidebarCollapsed && (
               <>
                 <span className="flex-1 truncate">{item.label}</span>
@@ -186,16 +186,16 @@ export function Sidebar() {
 
         {/* Sub-items */}
         {hasChildren && !sidebarCollapsed && isExpanded && (
-          <div className="ml-6 mt-0.5 space-y-0.5 border-l border-[#1E293B] pl-3">
+          <div className="ml-6 mt-0.5 space-y-0.5 border-l border-border pl-3">
             {item.children!.map((child) => (
               <Link
                 key={child.href}
                 href={child.href}
                 className={cn(
-                  'block py-1.5 px-2 rounded text-xs font-medium transition-all duration-150 cursor-pointer',
+                  'block py-1.5 px-2 rounded text-xs font-medium transition-all duration-200 cursor-pointer',
                   pathname === child.href || pathname.startsWith(child.href + '/')
-                    ? activeChildText
-                    : 'text-[#475569] hover:text-[#94A3B8]'
+                    ? `${activeChildText} font-semibold bg-active-bg/50`
+                    : 'text-text-muted hover:text-text-primary hover:bg-white/5'
                 )}
               >
                 {child.label}
@@ -213,12 +213,12 @@ export function Sidebar() {
   return (
     <aside
       className={cn(
-        'flex flex-col bg-[#131c2b] border-r border-[#1e2d3d] h-screen sticky top-0 transition-all duration-300 flex-shrink-0',
+        'flex flex-col glass-panel-heavy border-r border-border border-y-0 border-l-0 h-screen sticky top-0 transition-all duration-300 flex-shrink-0 z-50',
         sidebarCollapsed ? 'w-16' : 'w-56'
       )}
     >
       {/* Logo */}
-      <div className="flex items-center h-16 px-4 border-b border-[#1e2d3d] flex-shrink-0">
+      <div className="flex items-center h-16 px-4 border-b border-border flex-shrink-0">
         {sidebarCollapsed ? (
           <div className="w-8 h-8 bg-[#1a2744] border border-[#243355] rounded-lg flex items-center justify-center overflow-hidden">
             <Image
@@ -232,7 +232,7 @@ export function Sidebar() {
           </div>
         ) : (
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 bg-[#1a2744] border border-[#243355] rounded-lg flex items-center justify-center overflow-hidden flex-shrink-0">
+            <div className="w-8 h-8 bg-surface border border-border shadow-glass rounded-lg flex items-center justify-center overflow-hidden flex-shrink-0">
               <Image
                 src="/logo.png"
                 alt="Guia-se Maringá"
@@ -275,16 +275,16 @@ export function Sidebar() {
 
       {/* User info */}
       {!sidebarCollapsed && profile && (
-        <div className="border-t border-[#1e2d3d] px-3 py-3">
-          <div className="flex items-center gap-2.5 mb-2.5">
+        <div className="border-t border-border px-3 py-3">
+          <div className="flex items-center gap-2.5 mb-2.5 cursor-default">
             <div
-              className="w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0 ring-2 ring-offset-2 ring-offset-[#131c2b]"
+              className="w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0 ring-2 ring-offset-2 ring-offset-background shadow-glass"
               style={{ backgroundColor: roleColor, '--tw-ring-color': `${roleColor}50` } as React.CSSProperties}
             >
               {userInitial}
             </div>
             <div className="overflow-hidden flex-1 min-w-0">
-              <p className="text-xs font-semibold text-[#E2E8F0] truncate">{profile.name}</p>
+              <p className="text-xs font-semibold text-text-primary truncate">{profile.name}</p>
               <span className="text-[10px]" style={{ color: roleColor }}>
                 {ROLE_LABELS[profile.role] ?? profile.role}
               </span>
@@ -292,19 +292,19 @@ export function Sidebar() {
           </div>
           <button
             onClick={signOut}
-            className="flex items-center gap-2 w-full text-xs text-[#475569] hover:text-[#EF4444] transition-colors duration-150 px-1 py-1.5 rounded-lg hover:bg-[#EF4444]/8 cursor-pointer"
+            className="flex items-center justify-center gap-2 w-full text-xs font-medium text-text-muted hover:text-danger transition-colors duration-200 px-1 py-2 rounded-lg border border-transparent hover:border-danger/30 hover:bg-danger-bg cursor-pointer"
           >
             <LogOut size={13} />
-            Sair
+            Sair da Plataforma
           </button>
         </div>
       )}
 
       {/* Collapse button */}
-      <div className={cn('border-t border-[#1e2d3d] p-2', sidebarCollapsed ? 'flex justify-center' : '')}>
+      <div className={cn('border-t border-border p-2', sidebarCollapsed ? 'flex justify-center' : '')}>
         <button
           onClick={toggleSidebar}
-          className="p-2 rounded-lg text-[#334155] hover:text-[#64748B] hover:bg-[#1E293B]/60 transition-all duration-150 cursor-pointer"
+          className="p-2 rounded-lg text-text-muted hover:text-info hover:bg-white/5 transition-all duration-200 cursor-pointer"
           title={sidebarCollapsed ? 'Expandir menu' : 'Recolher menu'}
         >
           {sidebarCollapsed ? <ChevronRight size={15} /> : <ChevronLeft size={15} />}

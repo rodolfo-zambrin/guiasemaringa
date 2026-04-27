@@ -52,46 +52,46 @@ export function Header({ title, showPlatformSelector = true }: HeaderProps) {
   const activePlatformColor = PLATFORMS.find((p) => p.value === platform)?.color ?? '#3B82F6'
 
   return (
-    <header className="flex items-center justify-between gap-4 px-6 h-16 border-b border-[#1e2d3d] bg-[#131c2b] flex-shrink-0">
+    <header className="flex items-center justify-between gap-4 px-6 h-16 border-b border-border glass-panel z-40 sticky top-0 flex-shrink-0">
       {/* Title */}
-      <h1 className="text-sm font-bold text-[#E2E8F0] truncate tracking-tight">{title}</h1>
+      <h1 className="text-sm font-bold text-text-primary truncate tracking-tight">{title}</h1>
 
       {/* Controls */}
-      <div className="flex items-center gap-2 flex-shrink-0">
+      <div className="flex items-center gap-3 flex-shrink-0">
         {/* Date presets */}
-        <div className="hidden md:flex items-center bg-[#0d1520] border border-[#1e2d3d] rounded-lg p-0.5 gap-0.5">
+        <div className="hidden md:flex items-center bg-surface-solid/80 border border-border shadow-sm rounded-full p-1 gap-1">
           {DATE_PRESETS.map((preset) => (
             <button
               key={preset.label}
               onClick={() => handlePreset(preset.days, preset.label)}
               className={cn(
-                'px-3 py-1.5 text-xs font-semibold rounded-md transition-all duration-150 cursor-pointer',
+                'px-3 py-1.5 text-xs font-semibold rounded-full transition-all duration-200 cursor-pointer',
                 activePreset === preset.label
-                  ? 'bg-[#3B82F6] text-white shadow-sm'
-                  : 'text-[#475569] hover:text-[#94A3B8] hover:bg-[#1E293B]/60'
+                  ? 'bg-info text-background shadow-glass'
+                  : 'text-text-muted hover:text-text-primary hover:bg-white/5'
               )}
             >
               {preset.label}
             </button>
           ))}
-          <div className="w-px h-4 bg-[#1e2d3d] mx-0.5" />
-          <span className="px-2 text-[11px] text-[#334155] font-mono tabular-nums">
-            {dateRange.from} → {dateRange.to}
+          <div className="w-px h-4 bg-border mx-1" />
+          <span className="px-2 text-[11px] text-text-muted font-mono tabular-nums">
+            {dateRange.from} &rarr; {dateRange.to}
           </span>
         </div>
 
         {/* Platform selector */}
         {showPlatformSelector && (
-          <div className="hidden sm:flex items-center bg-[#0d1520] border border-[#1e2d3d] rounded-lg p-0.5 gap-0.5">
+          <div className="hidden sm:flex items-center bg-surface-solid/80 border border-border shadow-sm rounded-full p-1 gap-1">
             {PLATFORMS.map((p) => (
               <button
                 key={p.value}
                 onClick={() => setPlatform(p.value)}
                 className={cn(
-                  'px-3 py-1.5 text-xs font-semibold rounded-md transition-all duration-150 cursor-pointer',
+                  'px-3 py-1.5 text-xs font-semibold rounded-full transition-all duration-200 cursor-pointer',
                   platform === p.value
-                    ? 'text-white shadow-sm'
-                    : 'text-[#475569] hover:text-[#94A3B8] hover:bg-[#1E293B]/60'
+                    ? 'text-white shadow-glass shadow-info/40'
+                    : 'text-text-muted hover:text-text-primary hover:bg-white/5'
                 )}
                 style={
                   platform === p.value
@@ -108,7 +108,7 @@ export function Header({ title, showPlatformSelector = true }: HeaderProps) {
         {/* Refresh */}
         <button
           onClick={handleRefresh}
-          className="p-2 rounded-lg text-[#334155] hover:text-[#64748B] hover:bg-[#1E293B]/60 transition-all duration-150 cursor-pointer"
+          className="p-2 rounded-full text-text-muted hover:text-info hover:bg-info/10 transition-all duration-200 cursor-pointer"
           title="Atualizar dados"
         >
           <RefreshCw size={15} className={cn(isRefreshing && 'animate-spin')} />
@@ -117,11 +117,11 @@ export function Header({ title, showPlatformSelector = true }: HeaderProps) {
         {/* Alerts bell */}
         <Link
           href="/alertas"
-          className="relative p-2 rounded-lg text-[#334155] hover:text-[#64748B] hover:bg-[#1E293B]/60 transition-all duration-150"
+          className="relative p-2 rounded-full text-text-muted hover:text-info hover:bg-info/10 transition-all duration-200 group"
         >
-          <Bell size={15} />
+          <Bell size={15} className="group-hover:animate-float" />
           {totalAlerts > 0 && (
-            <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-[#EF4444] rounded-full ring-2 ring-[#131c2b]" />
+            <span className="absolute top-1 right-1 w-2 h-2 bg-danger rounded-full ring-2 ring-surface shadow-[0_0_8px_rgba(239,68,68,0.8)] animate-pulse-live" />
           )}
         </Link>
       </div>

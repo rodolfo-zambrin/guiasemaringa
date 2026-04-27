@@ -235,7 +235,7 @@ export default function DashboardPage() {
   ]
 
   return (
-    <div className="flex flex-col flex-1 bg-[#0d1520]">
+    <div className="flex flex-col flex-1 bg-transparent">
       <Header title="Visão Geral do Portfólio" />
 
       <div className="flex-1 p-6 space-y-6">
@@ -294,10 +294,13 @@ export default function DashboardPage() {
         {/* Charts row */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           {/* Top clients */}
-          <div className="lg:col-span-2 bg-[#1E293B] border border-[#1e2d3d] rounded-xl overflow-hidden">
-            <div className="px-5 py-4 border-b border-[#1e2d3d]">
-              <h3 className="text-sm font-semibold text-[#E2E8F0]">Top 10 Clientes</h3>
-              <p className="text-[11px] text-[#475569] mt-0.5">Ranking por investimento total no período</p>
+          <div className="lg:col-span-2 glass-panel rounded-2xl overflow-hidden shadow-glass relative group">
+            <div className="px-5 py-4 border-b border-border bg-surface-solid/30 backdrop-blur-md relative z-10">
+              <h3 className="text-sm font-semibold text-text-primary flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-info shadow-[0_0_8px_rgba(56,189,248,0.8)]" />
+                Top 10 Clientes
+              </h3>
+              <p className="text-[11px] text-text-muted mt-0.5 ml-4">Ranking por investimento total no período</p>
             </div>
             <div className="p-5">
               <BarChart
@@ -313,10 +316,13 @@ export default function DashboardPage() {
           </div>
 
           {/* Platform donut */}
-          <div className="bg-[#1E293B] border border-[#1e2d3d] rounded-xl overflow-hidden">
-            <div className="px-5 py-4 border-b border-[#1e2d3d]">
-              <h3 className="text-sm font-semibold text-[#E2E8F0]">Distribuição por Plataforma</h3>
-              <p className="text-[11px] text-[#475569] mt-0.5">Participação no investimento total</p>
+          <div className="glass-panel rounded-2xl overflow-hidden shadow-glass relative group">
+            <div className="px-5 py-4 border-b border-border bg-surface-solid/30 backdrop-blur-md relative z-10">
+              <h3 className="text-sm font-semibold text-text-primary flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-accent-light shadow-[0_0_8px_rgba(125,211,252,0.8)]" />
+                Distribuição por Plataforma
+              </h3>
+              <p className="text-[11px] text-text-muted mt-0.5 ml-4">Participação no investimento total</p>
             </div>
             <div className="p-5">
               <DonutChart data={platformDonut} format="brl" height={200} />
@@ -339,15 +345,18 @@ export default function DashboardPage() {
         </div>
 
         {/* Daily trend */}
-        <div className="bg-[#1E293B] border border-[#1e2d3d] rounded-xl overflow-hidden">
-          <div className="px-5 py-4 border-b border-[#1e2d3d] flex items-center justify-between">
+        <div className="glass-panel rounded-2xl overflow-hidden shadow-glass relative group">
+          <div className="px-5 py-4 border-b border-border bg-surface-solid/30 flex items-center justify-between relative z-10">
             <div>
-              <h3 className="text-sm font-semibold text-[#E2E8F0]">Investimento Diário</h3>
-              <p className="text-[11px] text-[#475569] mt-0.5">
+              <h3 className="text-sm font-semibold text-text-primary flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-meta shadow-[0_0_8px_rgba(24,119,242,0.8)]" />
+                Investimento Diário
+              </h3>
+              <p className="text-[11px] text-text-muted mt-0.5 ml-4">
                 Meta vs Google — {dateRange.from} a {dateRange.to}
               </p>
             </div>
-            <div className="hidden sm:flex items-center gap-3 text-xs text-[#475569]">
+            <div className="hidden sm:flex items-center gap-3 text-xs text-text-muted bg-surface-solid/50 px-3 py-1.5 rounded-full border border-border">
               <span className="flex items-center gap-1.5">
                 <span className="w-2.5 h-0.5 rounded-full bg-[#1877F2]" />
                 Meta Ads
@@ -372,10 +381,13 @@ export default function DashboardPage() {
         </div>
 
         {/* Clients table */}
-        <div className="bg-[#1E293B] border border-[#1e2d3d] rounded-xl overflow-hidden">
-          <div className="px-5 py-4 border-b border-[#1e2d3d]">
-            <h3 className="text-sm font-semibold text-[#E2E8F0]">Resumo por Cliente</h3>
-            <p className="text-[11px] text-[#475569] mt-0.5">Performance consolidada por conta no período selecionado</p>
+        <div className="glass-panel rounded-2xl overflow-hidden shadow-glass relative group md:col-span-2">
+          <div className="px-5 py-4 border-b border-border bg-surface-solid/30 relative z-10">
+            <h3 className="text-sm font-semibold text-text-primary flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-success shadow-[0_0_8px_rgba(34,197,94,0.8)]" />
+              Resumo por Cliente
+            </h3>
+            <p className="text-[11px] text-text-muted mt-0.5 ml-4">Performance consolidada por conta no período selecionado</p>
           </div>
           <div className="p-5">
             <DataTable data={clientRows} columns={columns} isLoading={isLoading} />

@@ -36,10 +36,10 @@ function formatValue(value: number | null | undefined, format: string): string {
 
 function SkeletonCard() {
   return (
-    <div className="bg-[#1E293B] border border-[#334155] rounded-xl p-5 space-y-3 overflow-hidden">
-      <div className="h-3 w-20 bg-[#263548] rounded shimmer" />
-      <div className="h-7 w-28 bg-[#263548] rounded shimmer" />
-      <div className="h-3 w-14 bg-[#263548] rounded shimmer" />
+    <div className="glass-panel rounded-2xl p-5 space-y-3 overflow-hidden">
+      <div className="h-3 w-20 bg-white/5 rounded shimmer" />
+      <div className="h-7 w-28 bg-white/5 rounded shimmer" />
+      <div className="h-3 w-14 bg-white/5 rounded shimmer" />
     </div>
   )
 }
@@ -61,17 +61,18 @@ export function MetricCard({
   return (
     <div
       className={cn(
-        'relative bg-[#1E293B] border border-[#334155] rounded-xl p-5 overflow-hidden',
-        'hover:border-[#475569] hover:shadow-lg hover:shadow-black/30',
-        'transition-all duration-200 cursor-default',
+        'relative glass-panel rounded-2xl p-5 overflow-hidden group',
+        'hover:border-white/20 hover:shadow-glass hover:-translate-y-1',
+        'transition-all duration-300 cursor-default',
         className
       )}
     >
       {/* Top accent line */}
       <div
-        className="absolute top-0 left-0 right-0 h-[2px] rounded-t-xl"
+        className="absolute top-0 left-0 right-0 h-[3px] rounded-t-2xl transition-all duration-300 opacity-80 group-hover:opacity-100 group-hover:h-[4px]"
         style={{
-          background: `linear-gradient(90deg, ${accentColor}, ${accentColor}60)`,
+          background: `linear-gradient(90deg, ${accentColor}, transparent)`,
+          boxShadow: `0 2px 15px ${accentColor}40`
         }}
       />
 
@@ -82,10 +83,11 @@ export function MetricCard({
         </span>
         {icon && (
           <div
-            className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+            className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 transition-transform duration-300 group-hover:scale-110"
             style={{
-              backgroundColor: `${accentColor}18`,
+              backgroundColor: `${accentColor}15`,
               color: accentColor,
+              boxShadow: `inset 0 0 10px ${accentColor}10`
             }}
           >
             {icon}
@@ -94,7 +96,7 @@ export function MetricCard({
       </div>
 
       {/* Value */}
-      <div className="text-2xl font-bold text-[#F1F5F9] tracking-tight mb-2">
+      <div className="text-[28px] font-extrabold text-white tracking-tight mb-2 drop-shadow-md">
         {formatValue(value, format)}
       </div>
 

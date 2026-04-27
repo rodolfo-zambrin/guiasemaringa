@@ -3,18 +3,18 @@
 @tailwind utilities;
 
 :root {
-  --bg: #0d1520;
-  --surface: #1E293B;
-  --elevated: #1a2744;
-  --border: #1e2d3d;
-  --text-primary: #E2E8F0;
+  --bg: #040b16; /* Deep Cosmic Blue */
+  --surface: rgba(11, 23, 39, 0.7);
+  --elevated: #0B1727;
+  --border: rgba(255, 255, 255, 0.08);
+  --text-primary: #F8FAFC;
   --text-muted: #64748B;
   --meta: #1877F2;
   --google: #34A853;
-  --success: #10B981;
+  --success: #22C55E;
   --warning: #F59E0B;
   --danger: #EF4444;
-  --info: #3B82F6;
+  --info: #38BDF8;
 }
 
 * {
@@ -24,27 +24,48 @@
 }
 
 body {
-  background-color: #0d1520;
-  color: #E2E8F0;
+  background-color: var(--bg);
+  /* Cosmic noise overlay + Radial Glows */
+  background-image: 
+    radial-gradient(circle at 15% 50%, rgba(56, 189, 248, 0.06), transparent 25%),
+    radial-gradient(circle at 85% 30%, rgba(168, 85, 247, 0.06), transparent 25%);
+  background-attachment: fixed;
+  color: var(--text-primary);
   font-family: 'Inter', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Scrollbar */
+/* Glassmorphism Classes */
+.glass-panel {
+  background: var(--surface);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--border);
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+}
+
+.glass-panel-heavy {
+  background: rgba(11, 23, 39, 0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--border);
+}
+
+/* Scrollbar Modernization */
 ::-webkit-scrollbar {
-  width: 5px;
-  height: 5px;
+  width: 4px;
+  height: 4px;
 }
 ::-webkit-scrollbar-track {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #1e2d3d;
+  background: rgba(255, 255, 255, 0.1);
   border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #334155;
+  background: rgba(255, 255, 255, 0.2);
 }
 
 /* Table sticky header */
@@ -52,12 +73,13 @@ body {
   position: sticky;
   top: 0;
   z-index: 10;
-  background-color: #1E293B;
+  background-color: rgba(11, 23, 39, 0.95);
+  backdrop-filter: blur(8px);
 }
 
 /* Shimmer animation */
 .shimmer {
-  background: linear-gradient(90deg, #1E293B 25%, #1a2744 50%, #1E293B 75%);
+  background: linear-gradient(90deg, rgba(255,255,255,0.05) 25%, rgba(255,255,255,0.1) 50%, rgba(255,255,255,0.05) 75%);
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite linear;
 }
@@ -69,8 +91,8 @@ body {
 
 /* Live pulse */
 @keyframes pulse-live {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.3; }
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(1.2); }
 }
 .animate-pulse-live {
   animation: pulse-live 1.5s ease-in-out infinite;
@@ -78,21 +100,21 @@ body {
 
 /* Fade in */
 @keyframes fade-in {
-  from { opacity: 0; transform: translateY(6px); }
+  from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: translateY(0); }
 }
 .animate-fade-in {
-  animation: fade-in 0.25s ease-out forwards;
+  animation: fade-in 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 /* Focus ring */
 :focus-visible {
-  outline: 2px solid #3B82F6;
+  outline: 2px solid var(--info);
   outline-offset: 2px;
 }
 
 /* Selection */
 ::selection {
-  background-color: #3B82F6;
+  background-color: rgba(56, 189, 248, 0.3);
   color: #fff;
 }

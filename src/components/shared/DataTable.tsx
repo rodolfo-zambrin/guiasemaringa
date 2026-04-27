@@ -33,10 +33,10 @@ function SkeletonRows({ cols }: { cols: number }) {
   return (
     <>
       {Array.from({ length: 10 }).map((_, i) => (
-        <tr key={i} className="border-b border-[#1E293B]">
+        <tr key={i} className="border-b border-border">
           {Array.from({ length: cols }).map((_, j) => (
             <td key={j} className="px-4 py-3">
-              <div className="h-4 bg-[#263548] rounded shimmer" style={{ width: `${60 + Math.random() * 30}%` }} />
+              <div className="h-4 bg-white/5 rounded shimmer" style={{ width: `${60 + Math.random() * 30}%` }} />
             </td>
           ))}
         </tr>
@@ -102,13 +102,13 @@ export function DataTable<T>({
       <div className="flex items-center justify-between gap-3">
         {/* Search */}
         <div className="relative">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#475569]" />
+          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
           <input
             type="text"
             value={globalFilter}
             onChange={(e) => setGlobalFilter(e.target.value)}
             placeholder="Pesquisar..."
-            className="bg-[#0F172A] border border-[#334155] rounded-lg pl-8 pr-4 py-2 text-sm text-[#F1F5F9] placeholder-[#475569] focus:outline-none focus:ring-1 focus:ring-[#3B82F6] w-64"
+            className="bg-surface-solid/50 border border-border rounded-lg pl-8 pr-4 py-2 text-sm text-text-primary placeholder-text-muted focus:outline-none focus:ring-1 focus:ring-info w-full sm:w-64 transition-all"
           />
         </div>
 
@@ -121,7 +121,7 @@ export function DataTable<T>({
               setPageSize(size)
               table.setPageSize(size)
             }}
-            className="bg-[#0F172A] border border-[#334155] rounded-lg px-3 py-2 text-sm text-[#94A3B8] focus:outline-none focus:ring-1 focus:ring-[#3B82F6]"
+            className="bg-surface-solid/50 border border-border rounded-lg px-3 py-2 text-sm text-text-secondary focus:outline-none focus:ring-1 focus:ring-info transition-all cursor-pointer"
           >
             {[25, 50, 100].map((size) => (
               <option key={size} value={size}>
@@ -133,7 +133,7 @@ export function DataTable<T>({
           {/* Export */}
           <button
             onClick={exportCSV}
-            className="flex items-center gap-1.5 bg-[#263548] hover:bg-[#334155] border border-[#334155] rounded-lg px-3 py-2 text-sm text-[#94A3B8] hover:text-[#F1F5F9] transition"
+            className="flex items-center gap-1.5 bg-surface hover:bg-white/10 border border-border rounded-lg px-3 py-2 text-sm text-text-secondary hover:text-text-primary transition-all cursor-pointer"
           >
             <Download size={14} />
             CSV
@@ -142,30 +142,30 @@ export function DataTable<T>({
       </div>
 
       {/* Table */}
-      <div className="overflow-x-auto rounded-xl border border-[#334155]">
+      <div className="overflow-x-auto rounded-xl glass-panel">
         <table className="w-full text-sm">
           <thead>
             {table.getHeaderGroups().map((headerGroup) => (
-              <tr key={headerGroup.id} className="border-b border-[#334155] bg-[#1E293B]">
+              <tr key={headerGroup.id} className="border-b border-border bg-surface-solid/50">
                 {headerGroup.headers.map((header) => (
                   <th
                     key={header.id}
                     onClick={header.column.getToggleSortingHandler()}
                     className={cn(
-                      'px-4 py-3 text-left text-xs font-semibold text-[#94A3B8] uppercase tracking-wider whitespace-nowrap select-none',
-                      header.column.getCanSort() && 'cursor-pointer hover:text-[#F1F5F9] transition'
+                      'px-4 py-3 text-left text-xs font-semibold text-text-secondary uppercase tracking-wider whitespace-nowrap select-none',
+                      header.column.getCanSort() && 'cursor-pointer hover:text-white transition'
                     )}
                   >
                     <div className="flex items-center gap-1">
                       {flexRender(header.column.columnDef.header, header.getContext())}
                       {header.column.getCanSort() && (
-                        <span className="text-[#475569]">
+                        <span className="text-text-muted">
                           {header.column.getIsSorted() === 'asc' ? (
-                            <ChevronUp size={12} />
+                            <ChevronUp size={12} className="text-info" />
                           ) : header.column.getIsSorted() === 'desc' ? (
-                            <ChevronDown size={12} />
+                            <ChevronDown size={12} className="text-info" />
                           ) : (
-                            <ChevronsUpDown size={12} />
+                            <ChevronsUpDown size={12} opacity={0.5} />
                           )}
                         </span>
                       )}
@@ -189,12 +189,12 @@ export function DataTable<T>({
                 <tr
                   key={row.id}
                   className={cn(
-                    'border-b border-[#1E293B] hover:bg-[#263548]/50 transition-colors',
-                    i % 2 === 0 ? 'bg-[#1E293B]' : 'bg-[#1a2535]'
+                    'border-b border-border hover:bg-white/5 transition-colors cursor-default',
+                    i % 2 === 0 ? 'bg-transparent' : 'bg-surface-solid/20'
                   )}
                 >
                   {row.getVisibleCells().map((cell) => (
-                    <td key={cell.id} className="px-4 py-3 text-[#F1F5F9] whitespace-nowrap">
+                    <td key={cell.id} className="px-4 py-3 text-text-primary whitespace-nowrap">
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}
                     </td>
                   ))}
@@ -207,7 +207,7 @@ export function DataTable<T>({
 
       {/* Pagination */}
       {!isLoading && totalRows > 0 && (
-        <div className="flex items-center justify-between text-sm text-[#94A3B8]">
+        <div className="flex items-center justify-between text-sm text-text-secondary">
           <span>
             {totalRows} resultado{totalRows !== 1 ? 's' : ''}
           </span>
@@ -215,7 +215,7 @@ export function DataTable<T>({
             <button
               onClick={() => table.previousPage()}
               disabled={!table.getCanPreviousPage()}
-              className="p-1 rounded hover:bg-[#263548] disabled:opacity-30 disabled:cursor-not-allowed transition"
+              className="p-1 rounded hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition cursor-pointer"
             >
               <ChevronLeft size={16} />
             </button>
@@ -225,7 +225,7 @@ export function DataTable<T>({
             <button
               onClick={() => table.nextPage()}
               disabled={!table.getCanNextPage()}
-              className="p-1 rounded hover:bg-[#263548] disabled:opacity-30 disabled:cursor-not-allowed transition"
+              className="p-1 rounded hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition cursor-pointer"
             >
               <ChevronRight size={16} />
             </button>

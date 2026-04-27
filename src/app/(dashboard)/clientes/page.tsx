@@ -1,13 +1,21 @@
 'use client'
 import { useMemo } from 'react'
+import Link from 'next/link'
 import { Header } from '@/components/layout/Header'
 import { useDashboardStore } from '@/store/dashboardStore'
 import { useMetaOverview } from '@/hooks/useMetaData'
 import { useGoogleOverview } from '@/hooks/useGoogleData'
-import { fmtBRL, fmtNum, fmtROAS } from '@/lib/utils/formatters'
+import { fmtBRL, fmtNum } from '@/lib/utils/formatters'
 import { META_ACCOUNT_NAMES, GOOGLE_ACCOUNT_NAMES, toClientName } from '@/lib/constants/accounts'
 import { PlatformBadge } from '@/components/shared/PlatformBadge'
-import { TrendingUp, DollarSign, Users } from 'lucide-react'
+import { TrendingUp, DollarSign, Users, Activity } from 'lucide-react'
+
+// Clientes com dashboard dedicado externo: mapa de clientName → URL
+// Atualizar com URLs finais após deploy no Vercel
+const CUSTOM_ROUTES: Record<string, string> = {
+  'Unicive Londrina': 'https://unicive.guiasemaringa.com',
+  'UniBF':            'https://unibf.guiasemaringa.com',
+}
 
 interface ClientSummary {
   name: string
@@ -108,13 +116,21 @@ export default function ClientesPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {clients.map((client) => {
               const pct = grandTotal > 0 ? (client.total / grandTotal) * 100 : 0
-              return (
-                <div key={client.name} className="bg-[#1E293B] border border-[#334155] rounded-xl p-4 hover:border-[#475569] transition-colors">
+              const customRoute = CUSTOM_ROUTES[client.name]
+              const cardContent = (
+                <>
                   <div className="flex items-start justify-between mb-3">
                     <div className="w-9 h-9 rounded-lg bg-[#263548] flex items-center justify-center text-base font-bold text-[#3B82F6]">
                       {client.name.charAt(0)}
                     </div>
-                    <span className="text-xs text-[#64748B]">{fmtNum(pct, 1)}% do total</span>
+                    {customRoute ? (
+                      <span className="flex items-center gap-1 bg-danger-bg text-danger text-[10px] font-bold px-1.5 py-0.5 rounded-full">
+                        <Activity size={9} className="animate-pulse" />
+                        AO VIVO
+                      </span>
+                    ) : (
+                      <span className="text-xs text-[#64748B]">{fmtNum(pct, 1)}% do total</span>
+                    )}
                   </div>
 
                   <h3 className="text-sm font-semibold text-[#F1F5F9] mb-0.5">{client.name}</h3>
@@ -150,6 +166,22 @@ export default function ClientesPage() {
                       />
                     </div>
                   </div>
+                </>
+              )
+
+              return customRoute ? (
+                <Link
+                  key={client.name}
+                  href={customRoute}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block bg-[#1E293B] border border-[#334155] rounded-xl p-4 hover:border-blue-500/50 hover:-translate-y-0.5 transition-all duration-200"
+                >
+                  {cardContent}
+                </Link>
+              ) : (
+                <div key={client.name} className="bg-[#1E293B] border border-[#334155] rounded-xl p-4 hover:border-[#475569] transition-colors">
+                  {cardContent}
                 </div>
               )
             })}

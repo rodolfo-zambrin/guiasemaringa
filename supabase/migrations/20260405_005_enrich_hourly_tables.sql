@@ -28,5 +28,20 @@ CREATE INDEX IF NOT EXISTS idx_google_account_hourly_date_hour
   ON google_account_hourly (date, hour);
 
 -- ── Habilitar Supabase Realtime ──
-ALTER PUBLICATION supabase_realtime ADD TABLE meta_account_hourly;
-ALTER PUBLICATION supabase_realtime ADD TABLE google_account_hourly;
+DO $$ BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables
+    WHERE pubname = 'supabase_realtime' AND tablename = 'meta_account_hourly'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE meta_account_hourly;
+  END IF;
+END $$;
+
+DO $$ BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables
+    WHERE pubname = 'supabase_realtime' AND tablename = 'google_account_hourly'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE google_account_hourly;
+  END IF;
+END $$;

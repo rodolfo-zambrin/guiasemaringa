@@ -22,12 +22,14 @@
       "position": [240, 300],
       "parameters": {
         "method": "GET",
-        "url": "https://SEU_PROJETO.supabase.co/rest/v1/lead_distribuicao?select=*",
+        "url": "https://SEU_PROJETO.supabase.co/rest/v1/lead_distribuicao_grafo?select=*",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "apikey",        "value": "SUPABASE_SERVICE_KEY" },
-            { "name": "Authorization", "value": "Bearer SUPABASE_SERVICE_KEY" }
+            { "name": "apikey",          "value": "SUPABASE_SERVICE_KEY" },
+            { "name": "Authorization",   "value": "Bearer SUPABASE_SERVICE_KEY" },
+            { "name": "Content-Profile", "value": "grafo_capital" },
+            { "name": "Accept-Profile",  "value": "grafo_capital" }
           ]
         },
         "options": {}
@@ -41,7 +43,7 @@
       "position": [480, 300],
       "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "const todos = $input.all().map(item => item.json);\nconst totalLeads = todos.reduce((sum, c) => sum + (c.total_leads || 0), 0);\nconst isAssessores = (totalLeads % 4) === 3;\nconst candidatos = todos.filter(c => isAssessores ? c.time === 'assessores' : c.time === 'consorcio');\ncandidatos.sort((a, b) => {\n  if (!a.dt_ultimo_lead && !b.dt_ultimo_lead) return 0;\n  if (!a.dt_ultimo_lead) return -1;\n  if (!b.dt_ultimo_lead) return 1;\n  return new Date(a.dt_ultimo_lead) - new Date(b.dt_ultimo_lead);\n});\nconst escolhido = candidatos[0];\nreturn [{ json: { consultor_key: escolhido.consultor_key, nome_consultor: escolhido.nome_consultor, enum_id: escolhido.enum_id, time: escolhido.time, total_leads_atual: escolhido.total_leads || 0 } }];"
+        "jsCode": "const EXCLUIDOS = ['C3'];\nconst todos = $input.all().map(item => item.json).filter(c => !EXCLUIDOS.includes(c.consultor_key));\nconst totalLeads = todos.reduce((sum, c) => sum + (c.total_leads || 0), 0);\nconst isAssessores = (totalLeads % 5) === 4;\nconst candidatos = todos.filter(c => isAssessores ? c.time === 'assessores' : c.time === 'consorcio');\nif (candidatos.length === 0) {\n  throw new Error(`Nenhum consultor disponível para time: ${isAssessores ? 'assessores' : 'consorcio'}`);\n}\ncandidatos.sort((a, b) => {\n  if (!a.dt_ultimo_lead && !b.dt_ultimo_lead) return 0;\n  if (!a.dt_ultimo_lead) return -1;\n  if (!b.dt_ultimo_lead) return 1;\n  return new Date(a.dt_ultimo_lead) - new Date(b.dt_ultimo_lead);\n});\nconst escolhido = candidatos[0];\nreturn [{ json: { consultor_key: escolhido.consultor_key, nome_consultor: escolhido.nome_consultor, enum_id: escolhido.enum_id, time: escolhido.time, pipeline_id: escolhido.pipeline_id, status_id: escolhido.status_id, total_leads_atual: escolhido.total_leads || 0 } }];"
       }
     },
     {
@@ -206,7 +208,7 @@
         },
         "sendBody": true,
         "specifyBody": "string",
-        "body": "={{ JSON.stringify([{ \"id\": $('Buscar Lead Ativo').first().json._embedded.leads[0].id, \"name\": \"Consórcio\", \"price\": $('Webhook - Formulário').first().json.simulacao?.credito, \"pipeline_id\": 12569939, \"status_id\": 97079363, \"responsible_user_id\": 14482387, \"custom_fields_values\": [{ \"field_id\": 3616136, \"values\": [{ \"value\": $('Webhook - Formulário').first().json.simulacao?.tipo }] }, { \"field_id\": 3616138, \"values\": [{ \"value\": $('Webhook - Formulário').first().json.simulacao?.prazo }] }, { \"field_id\": 3616144, \"values\": [{ \"value\": $('Webhook - Formulário').first().json.simulacao?.credito }] }, { \"field_id\": 3616146, \"values\": [{ \"value\": $('Webhook - Formulário').first().json.simulacao?.taxaAdm }] }, { \"field_id\": 3616198, \"values\": [{ \"value\": $('Webhook - Formulário').first().json.simulacao?.fundoReserva }] }, { \"field_id\": 3616250, \"values\": [{ \"value\": $('Webhook - Formulário').first().json.simulacao?.total }] }, { \"field_id\": 3616252, \"values\": [{ \"value\": $('Webhook - Formulário').first().json.simulacao?.parcelaCheia }] }, { \"field_id\": 3616304, \"values\": [{ \"value\": $('Webhook - Formulário').first().json.simulacao?.meiaParcela }] }, { \"field_id\": 3616314, \"values\": [{ \"value\": $('Webhook - Formulário').first().json.mensagem }] }, { \"field_id\": 3616366, \"values\": [{ \"value\": $('Webhook - Formulário').first().json.consorcio }] }, { \"field_id\": 3616388, \"values\": [{ \"value\": $('Webhook - Formulário').first().json.perfil }] }, { \"field_id\": 3616692, \"values\": [{ \"value\": \"Formulário Consórcio\" }] }, { \"field_id\": 3840436, \"values\": [{ \"enum_id\": $('Calcular Consultor').first().json.enum_id }] }, { \"field_id\": 3855792, \"values\": [{ \"value\": $('Webhook - Formulário').first().json.estado }] }, { \"field_id\": 3855794, \"values\": [{ \"value\": $('Webhook - Formulário').first().json.cidade }] }, { \"field_id\": 3855796, \"values\": [{ \"value\": $('Webhook - Formulário').first().json.finalidade }] }] }]) }}",
+        "body": "={{ JSON.stringify([{ \"id\": $('Buscar Lead Ativo').first().json._embedded.leads[0].id, \"name\": \"Consórcio\", \"price\": $('Webhook - Formulário').first().json.simulacao?.credito, \"pipeline_id\": $('Calcular Consultor').first().json.pipeline_id, \"status_id\": $('Calcular Consultor').first().json.status_id, \"responsible_user_id\": 14482387, \"custom_fields_values\": [{ \"field_id\": 3616136, \"values\": [{ \"value\": $('Webhook - Formulário').first().json.simulacao?.tipo }] }, { \"field_id\": 3616138, \"values\": [{ \"value\": $('Webhook - Formulário').first().json.simulacao?.prazo }] }, { \"field_id\": 3616144, \"values\": [{ \"value\": $('Webhook - Formulário').first().json.simulacao?.credito }] }, { \"field_id\": 3616146, \"values\": [{ \"value\": $('Webhook - Formulário').first().json.simulacao?.taxaAdm }] }, { \"field_id\": 3616198, \"values\": [{ \"value\": $('Webhook - Formulário').first().json.simulacao?.fundoReserva }] }, { \"field_id\": 3616250, \"values\": [{ \"value\": $('Webhook - Formulário').first().json.simulacao?.total }] }, { \"field_id\": 3616252, \"values\": [{ \"value\": $('Webhook - Formulário').first().json.simulacao?.parcelaCheia }] }, { \"field_id\": 3616304, \"values\": [{ \"value\": $('Webhook - Formulário').first().json.simulacao?.meiaParcela }] }, { \"field_id\": 3616314, \"values\": [{ \"value\": $('Webhook - Formulário').first().json.mensagem }] }, { \"field_id\": 3616366, \"values\": [{ \"value\": $('Webhook - Formulário').first().json.consorcio }] }, { \"field_id\": 3616388, \"values\": [{ \"value\": $('Webhook - Formulário').first().json.perfil }] }, { \"field_id\": 3616692, \"values\": [{ \"value\": \"Formulário Consórcio\" }] }, { \"field_id\": 3840436, \"values\": [{ \"enum_id\": $('Calcular Consultor').first().json.enum_id }] }, { \"field_id\": 3855792, \"values\": [{ \"value\": $('Webhook - Formulário').first().json.estado }] }, { \"field_id\": 3855794, \"values\": [{ \"value\": $('Webhook - Formulário').first().json.cidade }] }, { \"field_id\": 3855796, \"values\": [{ \"value\": $('Webhook - Formulário').first().json.finalidade }] }] }]) }}",
         "options": {}
       }
     },
@@ -228,7 +230,7 @@
         },
         "sendBody": true,
         "specifyBody": "string",
-        "body": "={{ JSON.stringify([{ \"name\": \"Consórcio\", \"price\": $('Webhook - Formulário').first().json.simulacao?.credito, \"pipeline_id\": 12569939, \"status_id\": 97079363, \"responsible_user_id\": 14482387, \"_embedded\": { \"contacts\": [{ \"id\": $('Merge Contato').first().json.contact_id }], \"tags\": [{ \"name\": \"Lead Novo\" }] }, \"custom_fields_values\": [{ \"field_id\": 3616136, \"values\": [{ \"value\": $('Webhook - Formulário').first().json.simulacao?.tipo }] }, { \"field_id\": 3616138, \"values\": [{ \"value\": $('Webhook - Formulário').first().json.simulacao?.prazo }] }, { \"field_id\": 3616144, \"values\": [{ \"value\": $('Webhook - Formulário').first().json.simulacao?.credito }] }, { \"field_id\": 3616146, \"values\": [{ \"value\": $('Webhook - Formulário').first().json.simulacao?.taxaAdm }] }, { \"field_id\": 3616198, \"values\": [{ \"value\": $('Webhook - Formulário').first().json.simulacao?.fundoReserva }] }, { \"field_id\": 3616250, \"values\": [{ \"value\": $('Webhook - Formulário').first().json.simulacao?.total }] }, { \"field_id\": 3616252, \"values\": [{ \"value\": $('Webhook - Formulário').first().json.simulacao?.parcelaCheia }] }, { \"field_id\": 3616304, \"values\": [{ \"value\": $('Webhook - Formulário').first().json.simulacao?.meiaParcela }] }, { \"field_id\": 3616314, \"values\": [{ \"value\": $('Webhook - Formulário').first().json.mensagem }] }, { \"field_id\": 3616366, \"values\": [{ \"value\": $('Webhook - Formulário').first().json.consorcio }] }, { \"field_id\": 3616388, \"values\": [{ \"value\": $('Webhook - Formulário').first().json.perfil }] }, { \"field_id\": 3616692, \"values\": [{ \"value\": \"Formulário Consórcio\" }] }, { \"field_id\": 3840436, \"values\": [{ \"enum_id\": $('Calcular Consultor').first().json.enum_id }] }, { \"field_id\": 3855792, \"values\": [{ \"value\": $('Webhook - Formulário').first().json.estado }] }, { \"field_id\": 3855794, \"values\": [{ \"value\": $('Webhook - Formulário').first().json.cidade }] }, { \"field_id\": 3855796, \"values\": [{ \"value\": $('Webhook - Formulário').first().json.finalidade }] }] }]) }}",
+        "body": "={{ JSON.stringify([{ \"name\": \"Consórcio\", \"price\": $('Webhook - Formulário').first().json.simulacao?.credito, \"pipeline_id\": $('Calcular Consultor').first().json.pipeline_id, \"status_id\": $('Calcular Consultor').first().json.status_id, \"responsible_user_id\": 14482387, \"_embedded\": { \"contacts\": [{ \"id\": $('Merge Contato').first().json.contact_id }], \"tags\": [{ \"name\": \"Lead Novo\" }] }, \"custom_fields_values\": [{ \"field_id\": 3616136, \"values\": [{ \"value\": $('Webhook - Formulário').first().json.simulacao?.tipo }] }, { \"field_id\": 3616138, \"values\": [{ \"value\": $('Webhook - Formulário').first().json.simulacao?.prazo }] }, { \"field_id\": 3616144, \"values\": [{ \"value\": $('Webhook - Formulário').first().json.simulacao?.credito }] }, { \"field_id\": 3616146, \"values\": [{ \"value\": $('Webhook - Formulário').first().json.simulacao?.taxaAdm }] }, { \"field_id\": 3616198, \"values\": [{ \"value\": $('Webhook - Formulário').first().json.simulacao?.fundoReserva }] }, { \"field_id\": 3616250, \"values\": [{ \"value\": $('Webhook - Formulário').first().json.simulacao?.total }] }, { \"field_id\": 3616252, \"values\": [{ \"value\": $('Webhook - Formulário').first().json.simulacao?.parcelaCheia }] }, { \"field_id\": 3616304, \"values\": [{ \"value\": $('Webhook - Formulário').first().json.simulacao?.meiaParcela }] }, { \"field_id\": 3616314, \"values\": [{ \"value\": $('Webhook - Formulário').first().json.mensagem }] }, { \"field_id\": 3616366, \"values\": [{ \"value\": $('Webhook - Formulário').first().json.consorcio }] }, { \"field_id\": 3616388, \"values\": [{ \"value\": $('Webhook - Formulário').first().json.perfil }] }, { \"field_id\": 3616692, \"values\": [{ \"value\": \"Formulário Consórcio\" }] }, { \"field_id\": 3840436, \"values\": [{ \"enum_id\": $('Calcular Consultor').first().json.enum_id }] }, { \"field_id\": 3855792, \"values\": [{ \"value\": $('Webhook - Formulário').first().json.estado }] }, { \"field_id\": 3855794, \"values\": [{ \"value\": $('Webhook - Formulário').first().json.cidade }] }, { \"field_id\": 3855796, \"values\": [{ \"value\": $('Webhook - Formulário').first().json.finalidade }] }] }]) }}",
         "options": {}
       }
     },
@@ -245,22 +247,59 @@
       "name": "Atualizar Distribuição",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [2880, 300],
+      "position": [2880, 140],
       "parameters": {
-        "method": "PATCH",
-        "url": "=https://SEU_PROJETO.supabase.co/rest/v1/lead_distribuicao?consultor_key=eq.{{ $('Calcular Consultor').first().json.consultor_key }}",
+        "method": "POST",
+        "url": "https://SEU_PROJETO.supabase.co/rest/v1/rpc/grafo_incrementar_lead",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "apikey",        "value": "SUPABASE_SERVICE_KEY" },
-            { "name": "Authorization", "value": "Bearer SUPABASE_SERVICE_KEY" },
-            { "name": "Prefer",        "value": "return=minimal" },
-            { "name": "Content-Type",  "value": "application/json" }
+            { "name": "apikey",          "value": "SUPABASE_SERVICE_KEY" },
+            { "name": "Authorization",   "value": "Bearer SUPABASE_SERVICE_KEY" },
+            { "name": "Content-Profile", "value": "grafo_capital" },
+            { "name": "Content-Type",    "value": "application/json" }
           ]
         },
         "sendBody": true,
         "specifyBody": "string",
-        "body": "={{ JSON.stringify({ \"dt_ultimo_lead\": new Date().toISOString(), \"total_leads\": $('Calcular Consultor').first().json.total_leads_atual + 1 }) }}",
+        "body": "={{ JSON.stringify({ \"p_consultor_key\": $('Calcular Consultor').first().json.consultor_key }) }}",
+        "options": {}
+      }
+    },
+    {
+      "id": "n-17",
+      "name": "Preparar Payload Lead",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2880, 460],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const mergeLeadOutput = $input.first().json;\nlet kommo_lead_id = null;\nif (mergeLeadOutput._embedded?.leads?.[0]?.id) {\n  kommo_lead_id = mergeLeadOutput._embedded.leads[0].id;\n} else if (Array.isArray(mergeLeadOutput) && mergeLeadOutput[0]?.id) {\n  kommo_lead_id = mergeLeadOutput[0].id;\n} else if (mergeLeadOutput.id) {\n  kommo_lead_id = mergeLeadOutput.id;\n}\nconst wh = $('Webhook - Formulário').first().json;\nconst consultor = $('Calcular Consultor').first().json;\nconst contact_id = $('Merge Contato').first().json.contact_id;\nreturn [{ json: {\n  lead_id: kommo_lead_id,\n  contact_id,\n  form_name: 'Formulário Consórcio',\n  pipeline_id: consultor.pipeline_id,\n  status_id: consultor.status_id,\n  nome: wh.nome || null,\n  whatsapp: wh.whatsapp || null,\n  email: wh.email || null,\n  fbclid: wh.fbclid || null,\n  gclid: wh.gclid || null,\n  utm_source: wh.utm_source || null,\n  utm_medium: wh.utm_medium || null,\n  utm_campaign: wh.utm_campaign || null,\n  utm_content: wh.utm_content || null,\n  utm_term: wh.utm_term || null,\n  pagina: wh.pagina || null,\n  timestamp_form: wh.timestamp_form ? new Date(wh.timestamp_form).toISOString() : new Date().toISOString(),\n  simulacao_tipo: wh.simulacao?.tipo || null,\n  simulacao_credito: wh.simulacao?.credito || null,\n  simulacao_prazo: wh.simulacao?.prazo || null,\n  simulacao_parcela_cheia: wh.simulacao?.parcelaCheia || null,\n  finalidade: wh.finalidade || null,\n  cidade_consorcio: wh.cidade_consorcio || null,\n  estado: wh.estado || null,\n  cidade: wh.cidade || null,\n  perfil: wh.perfil || null,\n  lgpd_consent: wh.lgpd_consent || null,\n  convertido: false\n} }];"
+      }
+    },
+    {
+      "id": "n-18",
+      "name": "Salvar Lead Supabase",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [3120, 460],
+      "parameters": {
+        "method": "POST",
+        "url": "https://SEU_PROJETO.supabase.co/rest/v1/leads",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey",          "value": "SUPABASE_SERVICE_KEY" },
+            { "name": "Authorization",   "value": "Bearer SUPABASE_SERVICE_KEY" },
+            { "name": "Content-Profile", "value": "grafo_capital" },
+            { "name": "Accept-Profile",  "value": "grafo_capital" },
+            { "name": "Content-Type",    "value": "application/json" },
+            { "name": "Prefer",          "value": "return=minimal" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "string",
+        "body": "={{ JSON.stringify($json) }}",
         "options": {}
       }
     }
@@ -280,7 +319,8 @@
     "Lead Existe?":               { "main": [[{ "node": "Atualizar Lead", "type": "main", "index": 0 }], [{ "node": "Criar Lead", "type": "main", "index": 0 }]] },
     "Atualizar Lead":             { "main": [[{ "node": "Merge Lead", "type": "main", "index": 0 }]] },
     "Criar Lead":                 { "main": [[{ "node": "Merge Lead", "type": "main", "index": 1 }]] },
-    "Merge Lead":                 { "main": [[{ "node": "Atualizar Distribuição",      "type": "main", "index": 0 }]] }
+    "Merge Lead":                 { "main": [[{ "node": "Atualizar Distribuição", "type": "main", "index": 0 }, { "node": "Preparar Payload Lead", "type": "main", "index": 0 }]] },
+    "Preparar Payload Lead":      { "main": [[{ "node": "Salvar Lead Supabase",        "type": "main", "index": 0 }]] }
   },
   "settings": { "executionOrder": "v1" }
 }

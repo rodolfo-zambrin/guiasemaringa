@@ -1,0 +1,908 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Unicive Londrina — Dashboard em Tempo Real</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    :root {
+      --bg:       #0F172A;
+      --surface:  #1E293B;
+      --surface2: #263548;
+      --border:   #334155;
+      --text:     #F1F5F9;
+      --muted:    #94A3B8;
+      --faint:    #64748B;
+      --blue:     #3B82F6;
+      --purple:   #A855F7;
+      --green:    #22C55E;
+      --amber:    #F59E0B;
+      --red:      #EF4444;
+      --up:       #22C55E;
+      --down:     #EF4444;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      font-size: 14px;
+    }
+
+    /* ── header ── */
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 14px 24px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      flex-wrap: wrap;
+    }
+    .brand { display: flex; align-items: center; gap: 12px; }
+    .brand-logo {
+      width: 38px; height: 38px;
+      background: linear-gradient(135deg, #1E3A8A, #4F46E5);
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 900; font-size: 16px; color: #fff; letter-spacing: -1px;
+    }
+    .brand-name { font-size: 16px; font-weight: 800; color: var(--text); }
+    .brand-sub  { font-size: 11px; color: var(--faint); margin-top: 1px; }
+    .header-right { display: flex; align-items: center; gap: 12px; }
+    .badge-live {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: rgba(239,68,68,.1); color: #f87171;
+      border: 1px solid rgba(239,68,68,.3);
+      border-radius: 99px; padding: 4px 12px;
+      font-size: 11px; font-weight: 700;
+    }
+    .dot-live {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: var(--red); animation: pulse 1.4s infinite;
+    }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+    .last-update { font-size: 11px; color: var(--faint); }
+    .btn-refresh {
+      background: var(--surface2); border: 1px solid var(--border);
+      color: var(--muted); padding: 6px 14px; border-radius: 8px;
+      cursor: pointer; font-size: 12px; transition: .2s;
+    }
+    .btn-refresh:hover { color: var(--blue); border-color: var(--blue); }
+
+    /* ── tabs ── */
+    .tab-nav {
+      display: flex; gap: 4px;
+      padding: 12px 24px 0;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface);
+    }
+    .tab-btn {
+      padding: 8px 20px; border-radius: 8px 8px 0 0;
+      border: none; background: transparent;
+      color: var(--faint); cursor: pointer; font-size: 13px; font-weight: 600;
+      border-bottom: 2px solid transparent; transition: .2s;
+    }
+    .tab-btn:hover { color: var(--text); }
+    .tab-btn.active { color: var(--blue); border-bottom-color: var(--blue); background: rgba(59,130,246,.06); }
+
+    /* ── layout ── */
+    main { padding: 24px; max-width: 1400px; }
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+    .section-title {
+      font-size: 13px; font-weight: 700; color: var(--text); margin-bottom: 2px;
+    }
+    .section-sub { font-size: 11px; color: var(--faint); margin-bottom: 16px; }
+
+    /* ── kpi cards ── */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+      gap: 14px;
+      margin-bottom: 24px;
+    }
+    .kpi-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 14px; padding: 18px 20px;
+      position: relative; overflow: hidden;
+      transition: transform .2s, border-color .2s;
+    }
+    .kpi-card:hover { transform: translateY(-2px); border-color: rgba(255,255,255,.15); }
+    .kpi-accent {
+      position: absolute; top: 0; left: 0; right: 0; height: 3px;
+      border-radius: 14px 14px 0 0;
+    }
+    .kpi-label { font-size: 10px; font-weight: 700; color: var(--faint); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 10px; }
+    .kpi-value { font-size: 28px; font-weight: 900; color: var(--text); line-height: 1; margin-bottom: 6px; }
+    .kpi-value.text { font-size: 18px; }
+    .kpi-desc { font-size: 11px; color: var(--faint); }
+    .kpi-delta { display: inline-flex; align-items: center; gap: 3px; font-size: 11px; font-weight: 700; }
+    .kpi-delta.up { color: var(--up); }
+    .kpi-delta.down { color: var(--down); }
+    .kpi-delta.neutral { color: var(--faint); }
+
+    /* ── chart containers ── */
+    .chart-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 14px; padding: 20px; margin-bottom: 20px;
+    }
+    .chart-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 4px; }
+    .chart-note { font-size: 11px; color: var(--faint); margin-bottom: 16px; }
+
+    /* ── grid layouts ── */
+    .grid-2 { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; margin-bottom: 20px; }
+    .grid-eq { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
+    @media(max-width: 900px) { .grid-2, .grid-eq { grid-template-columns: 1fr; } }
+
+    /* ── hourly table ── */
+    .tbl-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 14px; overflow: hidden;
+    }
+    .tbl-head { padding: 14px 20px; border-bottom: 1px solid var(--border); }
+    table { width: 100%; border-collapse: collapse; }
+    th {
+      padding: 8px 14px; text-align: right;
+      font-size: 10px; font-weight: 700; color: var(--faint);
+      text-transform: uppercase; letter-spacing: .06em;
+      border-bottom: 1px solid var(--border);
+    }
+    th:first-child { text-align: left; }
+    td { padding: 7px 14px; text-align: right; font-size: 12px; }
+    td:first-child { text-align: left; font-family: monospace; color: var(--muted); }
+    tr.now td { background: rgba(59,130,246,.08); }
+    tr.now td:first-child { color: var(--blue); font-weight: 700; }
+    tr.total td { background: var(--surface2); font-weight: 700; }
+    tr:not(.total):not(.now):hover td { background: var(--surface2); }
+
+    /* ── last lead card ── */
+    .last-lead-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 14px; padding: 20px;
+    }
+    .last-lead-title { font-size: 13px; font-weight: 700; margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between; }
+    .ll-field { margin-bottom: 10px; }
+    .ll-label { font-size: 9px; font-weight: 700; color: var(--faint); text-transform: uppercase; letter-spacing: .1em; margin-bottom: 2px; }
+    .ll-value { font-size: 13px; color: var(--text); }
+    .ll-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+    .ll-time { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); }
+    .ll-time .ll-value { color: var(--green); font-family: monospace; font-size: 15px; font-weight: 700; }
+
+    /* ── distribution bars ── */
+    .dist-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 14px; overflow: hidden;
+    }
+    .dist-head { padding: 14px 20px; border-bottom: 1px solid var(--border); }
+    .dist-row { display: flex; align-items: center; gap: 12px; padding: 10px 20px; transition: background .15s; }
+    .dist-row:hover { background: var(--surface2); }
+    .dist-row + .dist-row { border-top: 1px solid rgba(51,65,85,.4); }
+    .dist-label { flex: 1; min-width: 0; font-size: 12px; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .dist-bar-wrap { flex: 1; min-width: 60px; }
+    .dist-bar { height: 4px; border-radius: 99px; background: var(--border); overflow: hidden; }
+    .dist-bar-fill { height: 100%; border-radius: 99px; transition: width .5s; }
+    .dist-count { font-size: 12px; font-weight: 700; color: var(--text); width: 28px; text-align: right; flex-shrink: 0; }
+    .dist-pct { font-size: 10px; color: var(--faint); width: 32px; text-align: right; flex-shrink: 0; }
+    .empty-state { padding: 32px; text-align: center; color: var(--faint); font-size: 12px; }
+
+    /* ── info banner ── */
+    .info-banner {
+      background: rgba(59,130,246,.08); border: 1px solid rgba(59,130,246,.2);
+      border-radius: 10px; padding: 10px 16px;
+      font-size: 12px; color: #93C5FD; margin-bottom: 20px;
+    }
+    .spinner { display: inline-block; width: 12px; height: 12px; border: 2px solid var(--border); border-top-color: var(--blue); border-radius: 50%; animation: spin .7s linear infinite; margin-right: 6px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── skeleton ── */
+    .skeleton { background: linear-gradient(90deg, var(--surface2) 25%, var(--border) 50%, var(--surface2) 75%); background-size: 200% 100%; animation: shimmer 1.4s infinite; border-radius: 6px; }
+    @keyframes shimmer { to { background-position: -200% 0; } }
+  </style>
+</head>
+<body>
+
+<!-- ───── HEADER ───── -->
+<header>
+  <div class="brand">
+    <div class="brand-logo">UC</div>
+    <div>
+      <div class="brand-name">Unicive Londrina</div>
+      <div class="brand-sub">Dashboard de Performance</div>
+    </div>
+  </div>
+  <div class="header-right">
+    <span class="last-update" id="last-update">Carregando...</span>
+    <div class="badge-live"><span class="dot-live"></span>AO VIVO</div>
+    <button class="btn-refresh" onclick="refresh()">↻ Atualizar</button>
+  </div>
+</header>
+
+<!-- ───── TAB NAV ───── -->
+<div class="tab-nav">
+  <button class="tab-btn active" data-tab="hoje">Hoje</button>
+  <button class="tab-btn" data-tab="historico">Histórico</button>
+  <button class="tab-btn" data-tab="distribuicao">Distribuição</button>
+</div>
+
+<!-- ───── MAIN ───── -->
+<main>
+
+  <!-- ═══ TAB: HOJE ═══ -->
+  <div class="tab-panel active" id="tab-hoje">
+
+    <div class="kpi-grid" id="kpi-hoje">
+      <div class="kpi-card skeleton" style="height:110px"></div>
+      <div class="kpi-card skeleton" style="height:110px"></div>
+      <div class="kpi-card skeleton" style="height:110px"></div>
+      <div class="kpi-card skeleton" style="height:110px"></div>
+      <div class="kpi-card skeleton" style="height:110px"></div>
+    </div>
+
+    <!-- Chart + Last Lead -->
+    <div class="grid-2">
+      <div class="chart-card">
+        <div class="chart-header">
+          <div>
+            <div class="section-title">Leads por Hora</div>
+            <div class="chart-note">Formulários integrados (hoje · ontem) + conversões Meta Ads</div>
+          </div>
+          <span id="chart-hour" style="font-size:11px;color:var(--faint)"></span>
+        </div>
+        <canvas id="chart-hourly" height="240"></canvas>
+      </div>
+
+      <div class="last-lead-card" id="last-lead-panel">
+        <div class="last-lead-title">
+          Último Lead
+          <span style="width:8px;height:8px;background:var(--green);border-radius:50%;display:inline-block"></span>
+        </div>
+        <div class="empty-state" style="padding:40px 0">Aguardando dados...</div>
+      </div>
+    </div>
+
+    <!-- Hourly Table -->
+    <div class="tbl-card">
+      <div class="tbl-head">
+        <div class="section-title">Detalhamento por Hora</div>
+        <div id="tbl-sub" class="chart-note" style="margin:2px 0 0"></div>
+      </div>
+      <div id="table-hourly-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Hora</th>
+              <th style="color:var(--blue)">Leads Hoje</th>
+              <th style="color:var(--faint)">Leads Ontem</th>
+              <th style="color:var(--purple)">Meta Conv.</th>
+              <th style="color:var(--purple)">Meta Invest.</th>
+            </tr>
+          </thead>
+          <tbody id="tbl-body">
+            <tr><td colspan="5" style="text-align:center;padding:32px;color:var(--faint)">Carregando...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ TAB: HISTÓRICO ═══ -->
+  <div class="tab-panel" id="tab-historico">
+
+    <div class="kpi-grid" id="kpi-hist">
+      <div class="kpi-card skeleton" style="height:110px"></div>
+      <div class="kpi-card skeleton" style="height:110px"></div>
+      <div class="kpi-card skeleton" style="height:110px"></div>
+    </div>
+
+    <div class="chart-card">
+      <div class="section-title">Leads por Dia — Últimos 30 dias</div>
+      <div class="chart-note">Todos os formulários (home, pós, estética, etc.)</div>
+      <canvas id="chart-hist" height="220"></canvas>
+    </div>
+
+    <div class="tbl-card">
+      <div class="tbl-head">
+        <div class="section-title">Histórico por Dia</div>
+        <div class="chart-note" style="margin:2px 0 0">Do mais recente ao mais antigo</div>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th style="text-align:left">Data</th>
+            <th>Leads</th>
+            <th>Consultores</th>
+            <th>Top Formulário</th>
+          </tr>
+        </thead>
+        <tbody id="tbl-hist-body">
+          <tr><td colspan="4" style="text-align:center;padding:32px;color:var(--faint)">Carregando...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ═══ TAB: DISTRIBUIÇÃO ═══ -->
+  <div class="tab-panel" id="tab-distribuicao">
+
+    <div class="info-banner" id="dist-period"></div>
+
+    <div class="grid-eq">
+      <div class="dist-card">
+        <div class="dist-head">
+          <div class="section-title">Por Consultor</div>
+          <div class="chart-note" style="margin:2px 0 0">Acumulado no período</div>
+        </div>
+        <div id="dist-consultores"></div>
+      </div>
+      <div class="dist-card">
+        <div class="dist-head">
+          <div class="section-title">Por Formulário</div>
+          <div class="chart-note" style="margin:2px 0 0">Acumulado no período</div>
+        </div>
+        <div id="dist-forms"></div>
+      </div>
+    </div>
+
+    <div class="grid-eq">
+      <div class="dist-card">
+        <div class="dist-head">
+          <div class="section-title">Por Modalidade</div>
+          <div class="chart-note" style="margin:2px 0 0">Acumulado no período</div>
+        </div>
+        <div id="dist-modalidades"></div>
+      </div>
+      <div class="dist-card">
+        <div class="dist-head">
+          <div class="section-title">Top 10 Cursos</div>
+          <div class="chart-note" style="margin:2px 0 0">Acumulado no período</div>
+        </div>
+        <div id="dist-cursos"></div>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<script>
+// ── CONFIG ────────────────────────────────────────────────────────────────────
+const SUPABASE_URL  = 'https://lsccpbfuatpwycrtksrb.supabase.co'
+const SUPABASE_KEY  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxzY2NwYmZ1YXRwd3ljcnRrc3JiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ4ODM2NzMsImV4cCI6MjA5MDQ1OTY3M30.uJKfvVPsLO4dfSpyWJQuZihEH6lHtLrrmPeVHOVcTL0'
+const META_ACCOUNTS = ['905420285681589','469315270785940','1184002296160825']
+
+const FORM_LABELS = {
+  home_lead:      'Home',
+  pos_presencial: 'Pós Presencial',
+  estetica_lead:  'Estética',
+  work_with_us:   'Trabalhe Conosco',
+  graduacao:      'Graduação',
+  extensao:       'Extensão',
+  outros:         'Outros',
+}
+
+// ── CHARTS STATE ──────────────────────────────────────────────────────────────
+const charts = {}
+let histData = []  // cache of 30-day data
+
+// ── DATE / TIME HELPERS ───────────────────────────────────────────────────────
+const BRT = { timeZone: 'America/Sao_Paulo' }
+
+function getBRTDateStr(offsetDays = 0) {
+  const d = new Date()
+  d.setDate(d.getDate() - offsetDays)
+  return new Intl.DateTimeFormat('en-CA', BRT).format(d)
+}
+
+function getBRTHour(isoStr) {
+  return parseInt(new Intl.DateTimeFormat('pt-BR', { ...BRT, hour: 'numeric', hour12: false }).format(new Date(isoStr)), 10)
+}
+
+function getCurrentHourBRT() {
+  return parseInt(new Intl.DateTimeFormat('pt-BR', { ...BRT, hour: 'numeric', hour12: false }).format(new Date()), 10)
+}
+
+function dateRangeFor(brtDate) {
+  return {
+    from: new Date(`${brtDate}T00:00:00-03:00`).toISOString(),
+    to:   new Date(`${brtDate}T23:59:59-03:00`).toISOString(),
+  }
+}
+
+function fmtBRL(n) {
+  return n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 2 })
+}
+
+function fmtNum(n) {
+  return n.toLocaleString('pt-BR')
+}
+
+function fmtDate(brtStr) {
+  const [y, m, d] = brtStr.split('-')
+  return `${d}/${m}`
+}
+
+function fmtTime(isoStr) {
+  return new Date(isoStr).toLocaleString('pt-BR', { ...BRT, day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' })
+}
+
+function maskPhone(tel) {
+  if (!tel) return '—'
+  const digits = tel.replace(/\D/g, '')
+  return digits.length >= 4 ? '••••' + digits.slice(-4) : '••••'
+}
+
+// ── SUPABASE FETCH ────────────────────────────────────────────────────────────
+async function sb(table, queryStr) {
+  const url = `${SUPABASE_URL}/rest/v1/${table}?${queryStr}`
+  const res = await fetch(url, {
+    headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` }
+  })
+  if (!res.ok) throw new Error(`${table}: ${res.status}`)
+  return res.json()
+}
+
+async function fetchLeads(from, to, extraFields = '') {
+  const select = `criado_em,consultor,form_id,modalidade,curso,nome${extraFields}`
+  const q = `select=${select}&criado_em=gte.${from}&criado_em=lte.${to}&order=criado_em.asc&limit=5000`
+  return sb('unicive_leads', q)
+}
+
+async function fetchLastLead() {
+  const q = 'select=nome,telefone,curso,modalidade,consultor,form_id,cidade,criado_em&order=criado_em.desc&limit=1'
+  const rows = await sb('unicive_leads', q)
+  return rows[0] ?? null
+}
+
+async function fetchMetaHourly(dateStr) {
+  const accs = META_ACCOUNTS.join(',')
+  const q = `select=hour,spend,leads,clicks&date=eq.${dateStr}&account_id=in.(${accs})&order=hour.asc`
+  return sb('meta_account_hourly', q)
+}
+
+// Fetch last 30 days of leads (select minimal fields to keep payload small)
+async function fetchHistorical30() {
+  const to = new Date(`${getBRTDateStr(0)}T23:59:59-03:00`).toISOString()
+  const from = new Date(`${getBRTDateStr(30)}T00:00:00-03:00`).toISOString()
+  const q = `select=criado_em,consultor,form_id&criado_em=gte.${from}&criado_em=lte.${to}&order=criado_em.asc&limit=20000`
+  return sb('unicive_leads', q)
+}
+
+// ── AGGREGATION HELPERS ───────────────────────────────────────────────────────
+function aggregateByHour(leads) {
+  const counts = new Array(24).fill(0)
+  for (const l of leads) {
+    const h = getBRTHour(l.criado_em)
+    if (h >= 0 && h <= 23) counts[h]++
+  }
+  return counts
+}
+
+function aggregateMeta(rows) {
+  const leads = new Array(24).fill(0)
+  const spend = new Array(24).fill(0)
+  const clicks = new Array(24).fill(0)
+  for (const r of rows) {
+    if (r.hour >= 0 && r.hour <= 23) {
+      leads[r.hour]  += r.leads  ?? 0
+      spend[r.hour]  += r.spend  ?? 0
+      clicks[r.hour] += r.clicks ?? 0
+    }
+  }
+  return { leads, spend, clicks }
+}
+
+function groupByDate(leads) {
+  const map = {}
+  for (const l of leads) {
+    const d = new Intl.DateTimeFormat('en-CA', BRT).format(new Date(l.criado_em))
+    if (!map[d]) map[d] = []
+    map[d].push(l)
+  }
+  return map
+}
+
+function topOf(arr, key) {
+  const cnt = {}
+  for (const x of arr) { const v = x[key] || 'N/D'; cnt[v] = (cnt[v]||0)+1 }
+  return Object.entries(cnt).sort((a,b)=>b[1]-a[1])
+}
+
+function calcDelta(now, prev) {
+  if (!prev) return null
+  return ((now - prev) / prev) * 100
+}
+
+function deltaHtml(pct) {
+  if (pct === null) return ''
+  const cls = pct > 2 ? 'up' : pct < -2 ? 'down' : 'neutral'
+  const arrow = pct > 0 ? '▲' : pct < 0 ? '▼' : '–'
+  return `<span class="kpi-delta ${cls}">${arrow} ${Math.abs(pct).toFixed(0)}% vs ontem</span>`
+}
+
+// ── CHART HELPERS ─────────────────────────────────────────────────────────────
+const baseFont = { family: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif', size: 11 }
+
+function baseGrid() {
+  return {
+    color: '#263548',
+    drawBorder: false,
+  }
+}
+
+function baseTick(color = '#64748B') {
+  return { color, font: baseFont }
+}
+
+function baseTooltip() {
+  return {
+    backgroundColor: '#0F172A',
+    borderColor: '#334155',
+    borderWidth: 1,
+    titleColor: '#94A3B8',
+    bodyColor: '#F1F5F9',
+    titleFont: baseFont,
+    bodyFont: baseFont,
+    padding: 10,
+    cornerRadius: 8,
+  }
+}
+
+// ── RENDER HELPERS ────────────────────────────────────────────────────────────
+function kpiCard(label, value, delta, desc, color = '#3B82F6', isText = false) {
+  return `
+    <div class="kpi-card">
+      <div class="kpi-accent" style="background:linear-gradient(90deg,${color},transparent)"></div>
+      <div class="kpi-label">${label}</div>
+      <div class="kpi-value${isText?' text':''}">${value}</div>
+      <div class="kpi-desc">${delta ? deltaHtml(delta) : ''}${desc ? `<span style="color:var(--faint)">${desc}</span>` : ''}</div>
+    </div>`
+}
+
+function distRows(entries, total, color) {
+  if (!entries.length) return '<div class="empty-state">Sem dados no período</div>'
+  return entries.map(([label, count]) => {
+    const pct = total > 0 ? (count / total * 100) : 0
+    return `
+      <div class="dist-row">
+        <div class="dist-label" title="${label}">${label}</div>
+        <div class="dist-bar-wrap">
+          <div class="dist-bar">
+            <div class="dist-bar-fill" style="width:${pct.toFixed(1)}%;background:${color}"></div>
+          </div>
+        </div>
+        <div class="dist-count">${count}</div>
+        <div class="dist-pct">${pct.toFixed(0)}%</div>
+      </div>`
+  }).join('')
+}
+
+// ── UPDATE: TAB HOJE ──────────────────────────────────────────────────────────
+async function updateHoje() {
+  const todayStr = getBRTDateStr(0)
+  const yestStr  = getBRTDateStr(1)
+  const { from: todayFrom, to: todayTo } = dateRangeFor(todayStr)
+  const { from: yestFrom,  to: yestTo  } = dateRangeFor(yestStr)
+  const currentHour = getCurrentHourBRT()
+
+  const [todayLeads, yestLeads, lastLead, metaToday] = await Promise.all([
+    fetchLeads(todayFrom, todayTo),
+    fetchLeads(yestFrom, yestTo),
+    fetchLastLead(),
+    fetchMetaHourly(todayStr),
+  ])
+
+  const todayH   = aggregateByHour(todayLeads)
+  const yestH    = aggregateByHour(yestLeads)
+  const metaAgg  = aggregateMeta(metaToday)
+
+  // KPIs
+  const leadsToday = todayLeads.length
+  const leadsYestSameHour = yestLeads.filter(l => getBRTHour(l.criado_em) <= currentHour).length
+  const metaLeadsTotal = metaAgg.leads.reduce((s,v)=>s+v,0)
+  const metaSpendTotal = metaAgg.spend.reduce((s,v)=>s+v,0)
+  const topCons = topOf(todayLeads, 'consultor')[0]?.[0] ?? '—'
+  const topForm = FORM_LABELS[topOf(todayLeads, 'form_id')[0]?.[0]] ?? topOf(todayLeads, 'form_id')[0]?.[0] ?? '—'
+
+  document.getElementById('kpi-hoje').innerHTML =
+    kpiCard('Leads Hoje', fmtNum(leadsToday), calcDelta(leadsToday, leadsYestSameHour), '', '#3B82F6') +
+    kpiCard('Meta Conversões', fmtNum(metaLeadsTotal), null, 'registrados no Meta', '#A855F7') +
+    kpiCard('Investimento Meta', fmtBRL(metaSpendTotal), null, 'gasto hoje', '#A855F7') +
+    kpiCard('Consultor Top', topCons, null, 'mais leads hoje', '#22C55E', true) +
+    kpiCard('Formulário Top', topForm, null, 'mais leads hoje', '#F59E0B', true)
+
+  // Hourly chart
+  const labels = Array.from({length: currentHour+2}, (_,i) => `${String(i).padStart(2,'0')}h`)
+  const sliceTo = currentHour + 2
+
+  if (charts.hourly) {
+    const ds = charts.hourly.data.datasets
+    ds[0].data = todayH.slice(0, sliceTo)
+    ds[1].data = yestH.slice(0, sliceTo)
+    ds[2].data = metaAgg.leads.slice(0, sliceTo)
+    charts.hourly.data.labels = labels
+    charts.hourly.update()
+  } else {
+    const ctx = document.getElementById('chart-hourly').getContext('2d')
+    charts.hourly = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [
+          {
+            label: 'Leads (hoje)',
+            data: todayH.slice(0, sliceTo),
+            backgroundColor: 'rgba(59,130,246,.7)',
+            borderRadius: 4,
+            borderSkipped: false,
+            order: 2,
+          },
+          {
+            label: 'Leads (ontem)',
+            data: yestH.slice(0, sliceTo),
+            backgroundColor: 'rgba(51,65,85,.7)',
+            borderRadius: 4,
+            borderSkipped: false,
+            order: 3,
+          },
+          {
+            label: 'Meta Ads',
+            data: metaAgg.leads.slice(0, sliceTo),
+            type: 'line',
+            borderColor: '#A855F7',
+            backgroundColor: 'rgba(168,85,247,.1)',
+            fill: true,
+            tension: 0.4,
+            pointRadius: 3,
+            borderWidth: 2,
+            order: 1,
+          },
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { mode: 'index', intersect: false },
+        plugins: {
+          legend: { position: 'bottom', labels: { color: '#94A3B8', font: baseFont, boxWidth: 12, padding: 16 } },
+          tooltip: baseTooltip(),
+        },
+        scales: {
+          x: { grid: baseGrid(), ticks: baseTick(), border: { display: false } },
+          y: { grid: baseGrid(), ticks: { ...baseTick(), stepSize: 1 }, border: { display: false }, beginAtZero: true },
+        },
+      }
+    })
+  }
+
+  document.getElementById('chart-hour').textContent = `Agora: ${String(currentHour).padStart(2,'0')}:00`
+
+  // Hourly table
+  document.getElementById('tbl-sub').textContent = `Acumulado até ${String(currentHour).padStart(2,'0')}:59 · hoje vs ontem`
+  let rows = ''
+  let totLeads=0, totYest=0, totMeta=0, totSpend=0
+  for (let h = 0; h <= currentHour; h++) {
+    const isNow = h === currentHour
+    totLeads += todayH[h]; totYest += yestH[h]; totMeta += metaAgg.leads[h]; totSpend += metaAgg.spend[h]
+    rows += `
+      <tr class="${isNow?'now':''}">
+        <td>${String(h).padStart(2,'0')}:00${isNow?' ◀':''}</td>
+        <td style="color:var(--blue);font-weight:600">${todayH[h]||'—'}</td>
+        <td style="color:var(--faint)">${yestH[h]||'—'}</td>
+        <td style="color:var(--purple)">${metaAgg.leads[h]||'—'}</td>
+        <td style="color:var(--purple)">${metaAgg.spend[h]>0?fmtBRL(metaAgg.spend[h]):'—'}</td>
+      </tr>`
+  }
+  if (leadsToday > 0) {
+    rows += `<tr class="total">
+      <td>Total</td>
+      <td style="color:var(--blue)">${totLeads}</td>
+      <td style="color:var(--faint)">${totYest}</td>
+      <td style="color:var(--purple)">${totMeta||'—'}</td>
+      <td style="color:var(--purple)">${totSpend>0?fmtBRL(totSpend):'—'}</td>
+    </tr>`
+  }
+  document.getElementById('tbl-body').innerHTML = rows || '<tr><td colspan="5" style="text-align:center;padding:32px;color:var(--faint)">Aguardando leads do dia...</td></tr>'
+
+  // Last lead
+  const panel = document.getElementById('last-lead-panel')
+  if (lastLead) {
+    panel.innerHTML = `
+      <div class="last-lead-title">
+        Último Lead
+        <span style="width:8px;height:8px;background:var(--green);border-radius:50%;display:inline-block"></span>
+      </div>
+      <div class="ll-field">
+        <div class="ll-label">Nome</div>
+        <div class="ll-value">${lastLead.nome || '—'}</div>
+      </div>
+      <div class="ll-field">
+        <div class="ll-label">Telefone</div>
+        <div class="ll-value" style="font-family:monospace;color:var(--muted)">${maskPhone(lastLead.telefone)}</div>
+      </div>
+      <div class="ll-grid">
+        <div>
+          <div class="ll-label">Consultor</div>
+          <div class="ll-value" style="color:var(--blue);font-weight:700">${lastLead.consultor||'—'}</div>
+        </div>
+        <div>
+          <div class="ll-label">Modalidade</div>
+          <div class="ll-value">${lastLead.modalidade||'—'}</div>
+        </div>
+        <div class="col2">
+          <div class="ll-label">Curso</div>
+          <div class="ll-value" style="font-size:12px">${lastLead.curso||'—'}</div>
+        </div>
+        <div>
+          <div class="ll-label">Formulário</div>
+          <div class="ll-value" style="font-size:12px">${FORM_LABELS[lastLead.form_id]||lastLead.form_id||'—'}</div>
+        </div>
+      </div>
+      ${lastLead.cidade ? `<div class="ll-field"><div class="ll-label">Cidade</div><div class="ll-value">${lastLead.cidade}</div></div>` : ''}
+      <div class="ll-time">
+        <div class="ll-label">Chegou em</div>
+        <div class="ll-value">${fmtTime(lastLead.criado_em)}</div>
+      </div>`
+  } else {
+    panel.innerHTML = `
+      <div class="last-lead-title">Último Lead</div>
+      <div class="empty-state" style="padding:40px 0">Nenhum lead registrado ainda</div>`
+  }
+}
+
+// ── UPDATE: TAB HISTÓRICO ─────────────────────────────────────────────────────
+async function updateHistorico() {
+  if (!histData.length) {
+    histData = await fetchHistorical30()
+  }
+
+  const byDate = groupByDate(histData)
+  const dates  = Object.keys(byDate).sort()
+
+  // fill missing days
+  const allDates = []
+  const d = new Date(`${getBRTDateStr(30)}T12:00:00-03:00`)
+  const end = new Date(`${getBRTDateStr(0)}T12:00:00-03:00`)
+  while (d <= end) {
+    allDates.push(new Intl.DateTimeFormat('en-CA', BRT).format(d))
+    d.setDate(d.getDate() + 1)
+  }
+
+  const dailyCounts = allDates.map(dt => (byDate[dt] || []).length)
+  const totalPeriod = histData.length
+  const avgDaily    = totalPeriod / allDates.length
+  const maxDay      = Math.max(...dailyCounts)
+  const maxDayDate  = allDates[dailyCounts.indexOf(maxDay)]
+
+  // KPIs
+  document.getElementById('kpi-hist').innerHTML =
+    kpiCard('Total 30 dias', fmtNum(totalPeriod), null, 'leads captados', '#3B82F6') +
+    kpiCard('Média Diária', avgDaily.toFixed(1), null, 'leads por dia', '#22C55E') +
+    kpiCard('Melhor Dia', fmtNum(maxDay), null, `em ${fmtDate(maxDayDate)}`, '#F59E0B')
+
+  // Line chart
+  const labels = allDates.map(fmtDate)
+  if (charts.hist) {
+    charts.hist.data.labels = labels
+    charts.hist.data.datasets[0].data = dailyCounts
+    charts.hist.update()
+  } else {
+    const ctx = document.getElementById('chart-hist').getContext('2d')
+    charts.hist = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [{
+          label: 'Leads por dia',
+          data: dailyCounts,
+          borderColor: '#3B82F6',
+          backgroundColor: 'rgba(59,130,246,.1)',
+          fill: true,
+          tension: 0.3,
+          pointRadius: 3,
+          pointBackgroundColor: '#3B82F6',
+          borderWidth: 2,
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: { ...baseTooltip(), callbacks: { title: (i) => allDates[i[0].dataIndex] } },
+        },
+        scales: {
+          x: {
+            grid: baseGrid(), border: { display: false },
+            ticks: { ...baseTick(), maxTicksLimit: 15 }
+          },
+          y: { grid: baseGrid(), ticks: { ...baseTick(), stepSize: 1 }, border: { display: false }, beginAtZero: true },
+        },
+      }
+    })
+  }
+
+  // Historical table (most recent first)
+  const sortedDates = [...allDates].reverse().slice(0, 30)
+  let tRows = ''
+  for (const dt of sortedDates) {
+    const rows = byDate[dt] || []
+    const cnt = rows.length
+    const cons = new Set(rows.map(r => r.consultor).filter(Boolean)).size
+    const topF = FORM_LABELS[topOf(rows, 'form_id')[0]?.[0]] ?? '—'
+    if (cnt > 0) {
+      tRows += `<tr>
+        <td style="text-align:left">${dt.split('-').reverse().join('/')}</td>
+        <td style="font-weight:700;color:var(--blue)">${cnt}</td>
+        <td style="color:var(--muted)">${cons}</td>
+        <td style="color:var(--faint)">${topF}</td>
+      </tr>`
+    }
+  }
+  document.getElementById('tbl-hist-body').innerHTML = tRows || '<tr><td colspan="4" style="text-align:center;padding:32px;color:var(--faint)">Sem dados</td></tr>'
+}
+
+// ── UPDATE: TAB DISTRIBUIÇÃO ──────────────────────────────────────────────────
+async function updateDistribuicao() {
+  if (!histData.length) {
+    histData = await fetchHistorical30()
+  }
+
+  const period = `${getBRTDateStr(30)} → ${getBRTDateStr(0)} · ${histData.length} leads no período`
+  document.getElementById('dist-period').innerHTML = `📊 Análise: ${period}`
+
+  const total = histData.length
+
+  const consultores = topOf(histData, 'consultor')
+  const forms       = topOf(histData, 'form_id').map(([id, n]) => [FORM_LABELS[id] ?? id, n])
+  const modalidades = topOf(histData, 'modalidade')
+  const cursos      = topOf(histData, 'curso').slice(0, 10)
+
+  document.getElementById('dist-consultores').innerHTML = distRows(consultores, total, '#3B82F6')
+  document.getElementById('dist-forms').innerHTML       = distRows(forms,       total, '#8B5CF6')
+  document.getElementById('dist-modalidades').innerHTML = distRows(modalidades, total, '#22C55E')
+  document.getElementById('dist-cursos').innerHTML      = distRows(cursos,      total, '#F59E0B')
+}
+
+// ── TAB SWITCHING ─────────────────────────────────────────────────────────────
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', async () => {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'))
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'))
+    btn.classList.add('active')
+    const tab = btn.dataset.tab
+    document.getElementById(`tab-${tab}`).classList.add('active')
+
+    if (tab === 'historico' && !charts.hist) await updateHistorico()
+    if (tab === 'distribuicao') await updateDistribuicao()
+  })
+})
+
+// ── REFRESH ───────────────────────────────────────────────────────────────────
+async function refresh() {
+  try {
+    histData = [] // bust cache
+    const active = document.querySelector('.tab-btn.active').dataset.tab
+    if (active === 'hoje') await updateHoje()
+    else if (active === 'historico') { histData = await fetchHistorical30(); await updateHistorico() }
+    else if (active === 'distribuicao') { histData = await fetchHistorical30(); await updateDistribuicao() }
+
+    const now = new Date().toLocaleTimeString('pt-BR', { ...BRT, hour: '2-digit', minute: '2-digit', second: '2-digit' })
+    document.getElementById('last-update').textContent = `Atualizado: ${now}`
+  } catch (e) {
+    document.getElementById('last-update').textContent = `Erro: ${e.message}`
+    console.error(e)
+  }
+}
+
+// ── INIT ──────────────────────────────────────────────────────────────────────
+refresh()
+setInterval(refresh, 60000) // refresh every minute
+</script>
+</body>
+</html>
